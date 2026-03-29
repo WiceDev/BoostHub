@@ -1,0 +1,727 @@
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
+import {
+  Phone, Search, Loader2, AlertTriangle, CheckCircle2, Copy,
+  RefreshCw, Wallet, X, Clock, ShieldCheck, ChevronDown, Check,
+  RotateCcw,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchSMSCountries, fetchSMSServices, fetchSMSPrice,
+  purchaseSMSNumber, checkSMSStatus, cancelSMSOrder,
+  fetchWallet, fetchOrders, type SMSCountry, type SMSService, type Order, ApiError,
+} from "@/lib/api";
+import { useCurrency } from "@/context/CurrencyContext";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+type PageState = "browse" | "waiting" | "completed" | "failed";
+
+interface SearchableDropdownProps<T extends { id: string; name: string }> {
+  items: T[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  searchPlaceholder: string;
+  loading?: boolean;
+  loadingText?: string;
+}
+
+function SearchableDropdown<T extends { id: string; name: string }>({
+  items, value, onChange, placeholder, searchPlaceholder, loading, loadingText,
+}: SearchableDropdownProps<T>) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selected = items.find((item) => item.id === value);
+
+  const filtered = useMemo(() => {
+    if (!search) return items;
+    const lower = search.toLowerCase();
+    return items.filter((item) => item.name.toLowerCase().includes(lower));
+  }, [items, search]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  if (loading) {
+    return (
+      <div className="h-11 rounded-lg border border-border/30 flex items-center px-4">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+        <span className="text-sm text-muted-foreground">{loadingText || "Loading..."}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setSearch(""); }}
+        className={cn(
+          "w-full h-11 px-3 rounded-lg border border-border/30 bg-background flex items-center justify-between text-sm transition-colors hover:bg-muted/30",
+          !selected && "text-muted-foreground",
+        )}
+      >
+        <span className="truncate">{selected ? selected.name : placeholder}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-border/30 bg-popover shadow-xl">
+          <div className="p-2 border-b border-border/30">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 text-sm bg-muted/30 rounded-md outline-none border-0 placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="max-h-[280px] overflow-y-auto p-1">
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No results found.</p>
+            ) : (
+              filtered.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { onChange(item.id); setOpen(false); }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors text-left",
+                    item.id === value
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "hover:bg-muted/50 text-foreground"
+                  )}
+                >
+                  <Check className={cn("h-3.5 w-3.5 shrink-0", item.id === value ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{item.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Within 72 hours from created_at
+function isWithin72Hours(dateStr: string): boolean {
+  const created = new Date(dateStr).getTime();
+  return Date.now() - created < 72 * 60 * 60 * 1000;
+}
+
+const numberStatusColors: Record<string, string> = {
+  completed:  "bg-success/10 text-success border-success/20",
+  processing: "bg-primary/10 text-primary border-primary/20",
+  pending:    "bg-warning/10 text-warning border-warning/20",
+  failed:     "bg-destructive/10 text-destructive border-destructive/20",
+  cancelled:  "bg-destructive/10 text-destructive border-destructive/20",
+  refunded:   "bg-muted text-muted-foreground border-border",
+};
+
+const numberStatusLabels: Record<string, string> = {
+  completed: "Received", processing: "Waiting", pending: "Pending",
+  failed: "Failed", cancelled: "Cancelled", refunded: "Refunded",
+};
+
+const NumbersPage = () => {
+  const { formatAmount } = useCurrency();
+  const queryClient = useQueryClient();
+
+  const [country, setCountry] = useState("");
+  const [service, setService] = useState("");
+  const [purchasing, setPurchasing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  // Active order state
+  const [pageState, setPageState] = useState<PageState>("browse");
+  const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [smsCode, setSmsCode] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(20 * 60);
+
+  const { data: numberOrders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ["orders", "phone_number"],
+    queryFn: () => fetchOrders("phone_number"),
+  });
+
+  const { data: countries = [], isLoading: countriesLoading, error: countriesError } = useQuery({
+    queryKey: ["sms-countries"],
+    queryFn: fetchSMSCountries,
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const { data: services = [], isLoading: servicesLoading, error: servicesError } = useQuery({
+    queryKey: ["sms-services"],
+    queryFn: fetchSMSServices,
+    staleTime: 60 * 60 * 1000,
+  });
+
+
+  const { data: wallet } = useQuery({
+    queryKey: ["wallet"],
+    queryFn: fetchWallet,
+  });
+
+  // Price query — only when both country and service are selected
+  const { data: priceData, isFetching: priceFetching } = useQuery({
+    queryKey: ["sms-price", country, service],
+    queryFn: () => fetchSMSPrice(country, service),
+    enabled: !!country && !!service,
+    staleTime: 30 * 1000,
+  });
+
+  // Poll for SMS status when waiting
+  const { data: statusData } = useQuery({
+    queryKey: ["sms-status", activeOrderId],
+    queryFn: () => checkSMSStatus(activeOrderId!),
+    enabled: pageState === "waiting" && !!activeOrderId,
+    refetchInterval: 5000,
+  });
+
+  // Countdown timer — ticks every second while waiting
+  useEffect(() => {
+    if (pageState !== "waiting") return;
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown((prev) => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [pageState, countdown]);
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  // Handle status updates
+  useEffect(() => {
+    if (!statusData) return;
+    if (statusData.sms_code) {
+      setSmsCode(statusData.sms_code);
+      setPageState("completed");
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+    } else if (statusData.status === "failed") {
+      setPageState("failed");
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+    }
+  }, [statusData, queryClient]);
+
+  const selectedCountry = countries.find((c) => c.id === country);
+  const selectedService = services.find((s) => s.id === service);
+  const balance = wallet ? parseFloat(wallet.balance) : 0;
+  const price = priceData ? parseFloat(priceData.price_ngn) : 0;
+  const canAfford = balance >= price;
+
+  const handleGetNewCode = (order: Order) => {
+    const extData = order.external_data as Record<string, string>;
+    const countryId = extData?.smspool_country;
+    const serviceId = extData?.smspool_service;
+    if (countryId) setCountry(countryId);
+    if (serviceId) setService(serviceId);
+    setPageState("browse");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.info("Service pre-selected. Review price and click Buy Number.");
+  };
+
+  const handlePurchase = async () => {
+    if (!country || !service || !canAfford) return;
+    setPurchasing(true);
+    try {
+      const result = await purchaseSMSNumber({
+        country,
+        service,
+        service_name: selectedService?.name || "",
+        country_name: selectedCountry?.name || "",
+        country_short_name: selectedCountry?.short_name || "",
+        dial_code: selectedCountry?.dial_code || "",
+      });
+      setActiveOrderId(result.order.id);
+      setPhoneNumber(result.phone_number);
+      setSmsCode(null);
+      setCountdown(20 * 60);
+      setPageState("waiting");
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      toast.success("Number purchased! Waiting for SMS code...");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to purchase number.";
+      toast.error(msg);
+    }
+    setPurchasing(false);
+  };
+
+  const handleCancel = async () => {
+    if (!activeOrderId) return;
+    setCancelling(true);
+    try {
+      await cancelSMSOrder(activeOrderId);
+      setPageState("browse");
+      setActiveOrderId(null);
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      toast.success("Order cancelled and refunded.");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to cancel order.";
+      toast.error(msg);
+    }
+    setCancelling(false);
+  };
+
+  const handleCopyCode = useCallback(() => {
+    if (smsCode) {
+      navigator.clipboard.writeText(smsCode);
+      toast.success("Code copied to clipboard!");
+    }
+  }, [smsCode]);
+
+  const handleCopyNumber = useCallback(() => {
+    if (phoneNumber) {
+      const dialCode = selectedCountry?.dial_code || "";
+      const full = dialCode
+        ? `+${dialCode}${phoneNumber.replace(/^\+/, "")}`
+        : `+${phoneNumber.replace(/^\+/, "")}`;
+      navigator.clipboard.writeText(full);
+      toast.success("Number copied to clipboard!");
+    }
+  }, [phoneNumber, selectedCountry]);
+
+  const resetToBrowse = () => {
+    setPageState("browse");
+    setActiveOrderId(null);
+    setPhoneNumber("");
+    setSmsCode(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-t-2xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-blue-600/10" />
+        <div className="absolute -top-10 -left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 header-diamond-pattern pointer-events-none" />
+        <div className="p-6 md:p-8 relative z-20 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+              <Phone className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Verification Numbers</h1>
+              <p className="text-muted-foreground text-sm mt-0.5">
+                Get temporary phone numbers for SMS verification &middot; Wallet: {wallet ? formatAmount(wallet.balance) : "..."}
+              </p>
+            </div>
+          </div>
+          <Link to="/dashboard/deposit">
+            <Button variant="outline" className="gap-2">
+              <Wallet className="h-4 w-4" /> Add Funds
+            </Button>
+          </Link>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
+      </div>
+
+      {/* Waiting for SMS */}
+      {pageState === "waiting" && (
+        <div className="glass-card p-8 text-center space-y-6">
+          <div className="h-20 w-20 rounded-full bg-sky-500/10 flex items-center justify-center mx-auto animate-pulse">
+            <Phone className="h-10 w-10 text-sky-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Waiting for SMS Code</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Use the number below for verification. The code will appear here automatically.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-border/30 bg-muted/20 p-6 max-w-md mx-auto space-y-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Your Number</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-2xl font-extrabold text-foreground tracking-wider font-mono">
+                  {selectedCountry?.dial_code
+                    ? `+${selectedCountry.dial_code} ${phoneNumber.replace(/^\+/, "")}`
+                    : `+${phoneNumber.replace(/^\+/, "")}`}
+                </p>
+                <button onClick={handleCopyNumber} className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <Copy className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 text-center">
+                {selectedService?.name} &middot; {selectedCountry?.name}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+              <span>Checking for incoming SMS...</span>
+            </div>
+
+            {/* Countdown timer */}
+            <div className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 ${
+              countdown <= 60 ? "bg-destructive/10 border border-destructive/20" : "bg-muted/40"
+            }`}>
+              <Clock className={`h-4 w-4 flex-shrink-0 ${countdown <= 60 ? "text-destructive" : "text-sky-500"}`} />
+              <span className={`text-sm font-bold font-mono ${countdown <= 60 ? "text-destructive" : "text-foreground"}`}>
+                {formatCountdown(countdown)}
+              </span>
+              <span className="text-xs text-muted-foreground">remaining</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="text-destructive border-destructive/30 hover:bg-destructive/5"
+          >
+            {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
+            Cancel & Refund
+          </Button>
+        </div>
+      )}
+
+      {/* Code Received */}
+      {pageState === "completed" && (
+        <div className="glass-card p-8 text-center space-y-6">
+          <div className="h-20 w-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Code Received!</h2>
+            <p className="text-sm text-muted-foreground mt-1">Your verification code is ready.</p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 max-w-md mx-auto space-y-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Verification Code</p>
+              <div className="flex items-center justify-center gap-3">
+                <p className="text-4xl font-extrabold text-emerald-500 tracking-[0.2em]">{smsCode}</p>
+                <button
+                  onClick={handleCopyCode}
+                  className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
+                >
+                  <Copy className="h-5 w-5 text-emerald-500" />
+                </button>
+              </div>
+            </div>
+            <div className="border-t border-border/30 pt-3">
+              <p className="text-xs text-muted-foreground">
+                Number: <span className="font-semibold text-foreground">+{phoneNumber.replace(/^\+/, "")}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" onClick={resetToBrowse}>
+              Buy Another Number
+            </Button>
+            <Link to="/dashboard/orders">
+              <Button>View Orders</Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Failed */}
+      {pageState === "failed" && (
+        <div className="glass-card p-8 text-center space-y-6">
+          <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Order Failed</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              The SMS number expired or was cancelled. Your wallet has been refunded.
+            </p>
+          </div>
+          <Button onClick={resetToBrowse}>Try Again</Button>
+        </div>
+      )}
+
+      {/* Browse / Purchase */}
+      {pageState === "browse" && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Service Selection */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="glass-card p-6 space-y-5">
+                <h2 className="text-base font-bold text-foreground">Select Service & Country</h2>
+
+                {(servicesError || countriesError) && (
+                  <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+                    {servicesError && <p>Services error: {(servicesError as Error).message}</p>}
+                    {countriesError && <p>Countries error: {(countriesError as Error).message}</p>}
+                  </div>
+                )}
+
+                {/* Service dropdown */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Service</label>
+                  <SearchableDropdown
+                    items={services}
+                    value={service}
+                    onChange={setService}
+                    placeholder="Choose a service (e.g. WhatsApp, Telegram)"
+                    searchPlaceholder="Search services..."
+                    loading={servicesLoading}
+                    loadingText="Loading services..."
+                  />
+                </div>
+
+                {/* Country dropdown */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Country</label>
+                  <SearchableDropdown
+                    items={countries}
+                    value={country}
+                    onChange={setCountry}
+                    placeholder="Choose a country"
+                    searchPlaceholder="Search countries..."
+                    loading={countriesLoading}
+                    loadingText="Loading countries..."
+                  />
+                </div>
+
+                {/* Price display */}
+                {country && service && (
+                  <div className="rounded-xl border border-border/30 bg-muted/20 p-5">
+                    {priceFetching ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">Fetching price...</span>
+                      </div>
+                    ) : priceData ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Price</span>
+                          <span className="text-2xl font-extrabold text-foreground">{formatAmount(priceData.price_ngn)}</span>
+                        </div>
+                        {priceData.success_rate && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Success Rate</span>
+                            <span className="text-sm font-bold text-emerald-500">{priceData.success_rate}%</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Your Balance</span>
+                          <span className={`text-sm font-bold ${canAfford ? "text-primary" : "text-destructive"}`}>
+                            {formatAmount(wallet?.balance || "0")}
+                          </span>
+                        </div>
+
+                        {!canAfford && (
+                          <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3 flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-semibold text-amber-500">Insufficient Balance</p>
+                              <Link to="/dashboard/deposit" className="text-xs font-semibold text-primary hover:underline">
+                                Add Funds
+                              </Link>
+                            </div>
+                          </div>
+                        )}
+
+                        <Button
+                          onClick={handlePurchase}
+                          disabled={purchasing || !canAfford}
+                          className="w-full h-12 bg-primary text-white shadow-lg text-sm font-bold"
+                        >
+                          {purchasing ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Phone className="h-4 w-4 mr-2" />
+                          )}
+                          {purchasing ? "Purchasing..." : `Buy Number for ${formatAmount(priceData.price_ngn)}`}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <Phone className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-foreground">Service Unavailable</p>
+                          <p className="text-sm text-foreground/80 mt-1">
+                            This service is currently unavailable. Check back later or select a different service.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Info sidebar */}
+            <div className="space-y-4">
+              <div className="glass-card p-5 space-y-4">
+                <h3 className="text-sm font-bold text-foreground">How it works</h3>
+                <div className="space-y-3">
+                  {[
+                    { step: "1", text: "Select a service and country" },
+                    { step: "2", text: "Purchase the number" },
+                    { step: "3", text: "Use the number for verification" },
+                    { step: "4", text: "Copy the received code" },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-start gap-3">
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-primary">{item.step}</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass-card p-5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                  <h3 className="text-sm font-bold text-foreground">Guarantees</h3>
+                </div>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium text-foreground">Auto-refund if no SMS received</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium text-foreground">Cancel anytime before code arrives</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Clock className="h-3.5 w-3.5 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium text-foreground">Numbers expire after ~20 minutes</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Orders History — always visible below the purchase form */}
+      <div className="glass-card overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/30">
+          <h2 className="text-base font-bold text-foreground">My Number Orders</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-muted/50 border-b border-border">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Order ID</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Number</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Code Received</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Country</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Service</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Status</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Date</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordersLoading ? (
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">Loading...</td></tr>
+              ) : numberOrders.length === 0 ? (
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">No number orders yet.</td></tr>
+              ) : (
+                numberOrders.map((order: Order, index: number) => {
+                  const extData = order.external_data as Record<string, string>;
+                  const rawNumber = extData?.phone_number || "";
+                  const dialCode = extData?.dial_code || "";
+                  const displayNumber = rawNumber
+                    ? dialCode
+                      ? `+${dialCode} ${rawNumber.replace(/^\+/, "")}`
+                      : `+${rawNumber.replace(/^\+/, "")}`
+                    : "—";
+                  const copyableNumber = rawNumber
+                    ? dialCode
+                      ? `+${dialCode}${rawNumber.replace(/^\+/, "")}`
+                      : `+${rawNumber.replace(/^\+/, "")}`
+                    : "";
+                  const smsCode = extData?.sms_code || order.result || null;
+                  const countryName = extData?.country_name || "—";
+                  const serviceName = extData?.service_name || "—";
+                  const canReorder = order.status === "completed" && isWithin72Hours(order.created_at);
+                  return (
+                    <tr
+                      key={order.id}
+                      className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${index % 2 === 1 ? "bg-muted/25" : ""}`}
+                    >
+                      <td className="px-6 py-4 text-sm font-semibold text-foreground">#{order.id}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-mono font-semibold text-foreground">{displayNumber}</span>
+                          {copyableNumber && (
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(copyableNumber); toast.success("Number copied!"); }}
+                              className="p-1 rounded hover:bg-muted/50 transition-colors"
+                            >
+                              <Copy className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {smsCode ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-mono font-bold text-success">{smsCode}</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(smsCode); toast.success("Code copied!"); }}
+                              className="p-1 rounded hover:bg-muted/50 transition-colors"
+                            >
+                              <Copy className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{countryName}</td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">{serviceName}</td>
+                      <td className="px-6 py-4">
+                        <Badge variant="outline" className={`text-xs font-semibold ${numberStatusColors[order.status] || ""}`}>
+                          {numberStatusLabels[order.status] || order.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-6 py-4">
+                        {canReorder ? (
+                          <Button size="sm" variant="outline" onClick={() => handleGetNewCode(order)} className="h-8 text-xs gap-1.5">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            New Code
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NumbersPage;

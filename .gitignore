@@ -1,0 +1,30 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.sqlite3
+media/
+staticfiles/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Binaries
+ngrok*
+
+# Claude / project docs (internal only)
+.claude/
+CLAUDE.md
+SPEC.MD
+
+# Celery beat schedule
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+
+# Misc
+cookies.txt
+.idea/
+icons/
+"social image.png"

@@ -1,0 +1,180 @@
+from pathlib import Path
+from decouple import config
+BASE_DIR = Path(__file__).resolve().parent.parent
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.ngrok-free.app,.ngrok-free.dev').split(',')
+
+# Applications
+DJANGO_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+THIRD_PARTY_APPS = [
+    'rest_framework',
+    'corsheaders',
+]
+LOCAL_APPS = [
+    'core',
+    'users',
+    'wallet',
+    'orders',
+    'services',
+    'api_integrations',
+    'dashboard',
+    'notifications',
+    'tickets',
+]
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'core.middleware.IPBanMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.RateLimitMiddleware',  # after auth so user-keyed limits work
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+ROOT_URLCONF = 'core.urls'
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'frontend' / 'dist'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+WSGI_APPLICATION = 'core.wsgi.application'
+
+# Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DATABASE_NAME'),
+        'USER': config('DATABASE_USER'),
+        'PASSWORD': config('DATABASE_PASSWORD'),
+        'HOST': config('DATABASE_HOST', default='localhost'),
+        'PORT': config('DATABASE_PORT', default='5432'),
+    }
+}
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Africa/Lagos'
+USE_I18N = True
+USE_TZ = True
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static', BASE_DIR / 'frontend' / 'dist']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# These are unused now (React SPA handles auth routing) but kept for Django admin
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/'
+LOGOUT_REDIRECT_URL = '/admin/login/'
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+
+# Cache — Redis backend (shared across workers; used for rate limiting & IP ban checks)
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,  # fail open if Redis is briefly unavailable
+        },
+        'KEY_PREFIX': 'wice',
+    }
+}
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULE = {
+    'check-boosting-orders': {
+        'task': 'check_boosting_orders',
+        'schedule': 300,  # every 5 minutes
+    },
+    'check-sms-orders': {
+        'task': 'check_sms_orders',
+        'schedule': 60,  # every minute (SMS is time-sensitive)
+    },
+}
+# Email — uses SMTP if configured, otherwise falls back to console
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@wiceplatform.com')
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
+REAL_SIMPLE_SOCIAL_API_KEY = config('REAL_SIMPLE_SOCIAL_API_KEY', default='')
+SMS_POOL_API_KEY = config('SMS_POOL_API_KEY', default='')
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
+RSS_USD_TO_NGN = 1600
+PLATFORM_NAME = 'WicePlatform'
+PLATFORM_CURRENCY = 'NGN'
+PLATFORM_WHATSAPP = config('PLATFORM_WHATSAPP', default='+2348000000000')
+AUTH_USER_MODEL = 'users.User'
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8080',
+    'http://localhost:8082',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8082',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok-free.dev',
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+] + [o for o in config('EXTRA_TRUSTED_ORIGINS', default='').split(',') if o]
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# CORS (allow React dev server + ngrok tunnels)
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',
+    'http://localhost:8082',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8082',
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r'^https://[\w-]+\.ngrok-free\.app$',
+    r'^https://[\w-]+\.ngrok-free\.dev$',
+    r'^https://[\w-]+\.ngrok\.io$',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF settings for SPA
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Session settings
+SESSION_COOKIE_AGE = 7 * 24 * 60 * 60          # 1 week
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False         # persist across browser restarts
+SESSION_SAVE_EVERY_REQUEST = True               # refresh expiry on each request

@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Dark is the default theme */
+  :root {
+    --background: 215 30% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 215 28% 12%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 215 28% 12%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 215 90% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 70% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 25% 16%;
+    --muted-foreground: 210 15% 55%;
+
+    --accent: 215 90% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 60% 48%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 18%;
+    --input: 215 25% 18%;
+    --ring: 215 90% 50%;
+
+    --radius: 0.75rem;
+
+    --surface: 215 30% 6%;
+
+    --sidebar-background: 215 35% 6%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 215 90% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 70% 45%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 25% 12%;
+    --sidebar-ring: 215 90% 50%;
+    --sidebar-muted: 215 25% 10%;
+  }
+
+  .dark {
+    --background: 215 30% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 215 28% 12%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 215 28% 12%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 215 90% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 70% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 25% 16%;
+    --muted-foreground: 210 15% 55%;
+
+    --accent: 215 90% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 60% 48%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 18%;
+    --input: 215 25% 18%;
+    --ring: 215 90% 50%;
+
+    --surface: 215 30% 6%;
+
+    --sidebar-background: 215 35% 6%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 215 90% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 70% 45%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 25% 12%;
+    --sidebar-ring: 215 90% 50%;
+    --sidebar-muted: 215 25% 10%;
+  }
+
+  .light {
+    --background: 215 65% 92%;
+    --foreground: 215 25% 15%;
+
+    --card: 215 50% 97%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 215 50% 97%;
+    --popover-foreground: 215 25% 15%;
+
+    --primary: 215 90% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 75% 33%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 215 40% 87%;
+    --muted-foreground: 215 15% 45%;
+
+    --accent: 215 90% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 40% 83%;
+    --input: 215 40% 83%;
+    --ring: 215 90% 38%;
+
+    --surface: 215 58% 89%;
+
+    --sidebar-background: 215 40% 13%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 215 90% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 70% 50%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 30% 18%;
+    --sidebar-ring: 215 90% 55%;
+    --sidebar-muted: 215 30% 18%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card rounded-2xl border border-border/50 shadow-sm;
+  }
+
+  /* Diamond lattice overlay for page headers.
+     Tiles a 60×60 diamond outline + inner crossing strokes to create
+     an intertwining woven pattern on top of the gradient. */
+  .header-diamond-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30 Z' fill='none' stroke='white' stroke-opacity='.18' stroke-width='1'/%3E%3Cline x1='0' y1='0' x2='30' y2='30' stroke='white' stroke-opacity='.09' stroke-width='.6'/%3E%3Cline x1='60' y1='0' x2='30' y2='30' stroke='white' stroke-opacity='.09' stroke-width='.6'/%3E%3Cline x1='0' y1='60' x2='30' y2='30' stroke='white' stroke-opacity='.09' stroke-width='.6'/%3E%3Cline x1='60' y1='60' x2='30' y2='30' stroke='white' stroke-opacity='.09' stroke-width='.6'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
+    background-repeat: repeat;
+  }
+
+  .gradient-blue {
+    background: hsl(215 90% 50%);
+  }
+
+  .gradient-blue-subtle {
+    background: hsl(215 90% 50% / 0.05);
+  }
+
+  .text-gradient {
+    @apply text-primary;
+  }
+
+  .smm-stat-card {
+    @apply bg-card rounded-2xl border border-border/50 p-5 relative overflow-hidden;
+  }
+
+  .smm-stat-card::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.06;
+  }
+}
