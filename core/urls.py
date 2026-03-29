@@ -8,8 +8,12 @@ from wallet.views import paystack_webhook
 
 def serve_spa(request):
     """Serve the React SPA index.html directly, bypassing the Django template engine."""
-    index_path = settings.BASE_DIR / 'frontend' / 'dist' / 'index.html'
-    return FileResponse(open(index_path, 'rb'), content_type='text/html')
+    import traceback
+    try:
+        index_path = settings.BASE_DIR / 'frontend' / 'dist' / 'index.html'
+        return FileResponse(open(index_path, 'rb'), content_type='text/html')
+    except Exception:
+        return HttpResponse(f'<pre>{traceback.format_exc()}</pre>', status=500)
 
 
 urlpatterns = [
