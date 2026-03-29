@@ -41,6 +41,8 @@ class User(AbstractUser):
             while User.objects.filter(referral_code=code).exists():
                 code = _generate_referral_code()
             self.referral_code = code
+        if self.is_staff:
+            self.is_verified = True
         super().save(*args, **kwargs)
 
     def __str__(self):
