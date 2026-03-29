@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'python manage.py migrate --noinput && echo \"PORT=${PORT}\" && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 120 --preload --log-level debug 2>&1'",
+    "startCommand": "sh -c 'python manage.py migrate --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 2>&1'",
     "healthcheckPath": "/api/csrf/",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
