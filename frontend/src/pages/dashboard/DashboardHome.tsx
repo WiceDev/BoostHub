@@ -368,7 +368,7 @@ const DashboardHome = () => {
       {/* Quick Services + Announcements (side by side on desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Quick Services */}
-        <div className="lg:col-span-3">
+        <div className="order-2 lg:order-1 lg:col-span-3">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-foreground">Quick Services</h2>
             <Link to="/dashboard/boosting" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
@@ -391,7 +391,7 @@ const DashboardHome = () => {
 
         {/* Announcements */}
         {announcements && announcements.length > 0 ? (
-          <div className="lg:col-span-2 flex flex-col gap-3">
+          <div className="order-1 lg:order-2 lg:col-span-2 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">Announcements</h2>
               {announcements.length > 1 && (
@@ -428,7 +428,7 @@ const DashboardHome = () => {
             ))}
           </div>
         ) : (
-          <div className="lg:col-span-2 hidden lg:block" />
+          <div className="order-1 lg:order-2 lg:col-span-2 hidden lg:block" />
         )}
       </div>
 
