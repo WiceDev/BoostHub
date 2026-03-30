@@ -321,15 +321,15 @@ const DashboardHome = () => {
             </div>
           </div>
 
-          <div className="relative flex gap-3 mt-6">
-            <Link to="/dashboard/deposit">
-              <Button className="font-semibold gap-2 rounded-xl shadow-lg">
+          <div className="relative flex gap-3 mt-6 sm:inline-flex">
+            <Link to="/dashboard/deposit" className="flex-1 sm:flex-none">
+              <Button className="w-full sm:w-auto font-semibold gap-2 rounded-xl shadow-lg">
                 <PlusCircle className="h-4 w-4" />
                 Add Funds
               </Button>
             </Link>
-            <Link to="/dashboard/orders">
-              <Button variant="outline" className="rounded-xl gap-2">
+            <Link to="/dashboard/orders" className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full sm:w-auto rounded-xl gap-2">
                 <ShoppingBag className="h-4 w-4" />
                 View Orders
               </Button>
