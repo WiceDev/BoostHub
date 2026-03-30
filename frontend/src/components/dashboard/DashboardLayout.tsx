@@ -467,7 +467,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   </button>
 
                   {notifOpen && (
-                    <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[calc(100vw-2rem)] sm:absolute sm:translate-x-0 sm:left-auto sm:right-0 sm:top-12 sm:w-80 max-w-sm bg-card border border-border/50 rounded-2xl shadow-xl z-50 overflow-hidden animate-fade-in">
+                    <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-80 sm:max-w-sm bg-card border border-border/50 rounded-2xl shadow-xl z-50 overflow-hidden animate-fade-in">
                       <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
                         <h3 className="font-semibold text-foreground text-sm">Notifications</h3>
                         {notifications.length > 0 && (
