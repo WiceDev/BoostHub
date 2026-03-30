@@ -356,11 +356,16 @@ const NumbersPage = () => {
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Your Number</p>
               <div className="flex items-center justify-center gap-2">
-                <p className="text-2xl font-extrabold text-foreground tracking-wider font-mono">
-                  {selectedCountry?.dial_code
-                    ? `+${selectedCountry.dial_code} ${phoneNumber.replace(/^\+/, "")}`
-                    : `+${phoneNumber.replace(/^\+/, "")}`}
-                </p>
+                <div className="text-center">
+                  {selectedCountry?.dial_code && (
+                    <p className="text-sm font-bold text-muted-foreground font-mono tracking-wider">
+                      +{selectedCountry.dial_code}
+                    </p>
+                  )}
+                  <p className="text-2xl font-extrabold text-foreground tracking-wider font-mono">
+                    {phoneNumber.replace(/^\+/, "").replace(selectedCountry?.dial_code || "", "").replace(/^0+/, "") || phoneNumber.replace(/^\+/, "")}
+                  </p>
+                </div>
                 <button onClick={handleCopyNumber} className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                   <Copy className="h-4 w-4 text-muted-foreground" />
                 </button>
@@ -424,9 +429,17 @@ const NumbersPage = () => {
               </div>
             </div>
             <div className="border-t border-border/30 pt-3">
-              <p className="text-xs text-muted-foreground">
-                Number: <span className="font-semibold text-foreground">+{phoneNumber.replace(/^\+/, "")}</span>
-              </p>
+              <p className="text-xs text-muted-foreground mb-1">Number</p>
+              {selectedCountry?.dial_code ? (
+                <>
+                  <p className="text-xs font-bold text-muted-foreground font-mono">+{selectedCountry.dial_code}</p>
+                  <p className="text-sm font-semibold text-foreground font-mono">
+                    {phoneNumber.replace(/^\+/, "").replace(selectedCountry.dial_code, "").replace(/^0+/, "") || phoneNumber.replace(/^\+/, "")}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-foreground font-mono">+{phoneNumber.replace(/^\+/, "")}</p>
+              )}
             </div>
           </div>
 
