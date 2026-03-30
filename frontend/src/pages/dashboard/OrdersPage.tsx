@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { fetchOrders } from "@/lib/api";
 import { useCurrency } from "@/context/CurrencyContext";
-import { Package, Search, X, AlertCircle } from "lucide-react";
+import { Package, Search, X, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   completed:  "bg-success/10 text-success border-success/20",
@@ -43,6 +43,7 @@ const OrdersPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: orders, isLoading, isError, refetch } = useQuery({
     queryKey: ["orders"],
@@ -229,32 +230,52 @@ const OrdersPage = () => {
           <>
             {/* ── Mobile card list (hidden on lg+) ── */}
             <div className="lg:hidden divide-y divide-border/30">
-              {filtered.map((order) => (
-                <div key={order.id} className="p-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground truncate">{order.service_name}</p>
-                      <p className="text-xs text-muted-foreground capitalize mt-0.5">
-                        {(serviceTypeLabels[order.service_type] || order.service_type.replace(/_/g, " "))} · #{order.id}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {new Date(order.created_at).toLocaleDateString("en-NG", {
-                          day: "numeric", month: "short", year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0 space-y-1.5">
-                      <p className="text-sm font-bold text-foreground">{formatAmount(order.amount)}</p>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-semibold ${statusColors[order.status] || ""}`}
-                      >
-                        {statusLabels[order.status] || order.status}
-                      </Badge>
+              {filtered.map((order) => {
+                const ext = order.external_data as Record<string, string | number>;
+                const qty = order.service_type === "boosting" ? ext?.quantity : null;
+                const rate = order.service_type === "boosting" ? ext?.rate_per_k_ngn : null;
+                const isOpen = expandedId === order.id;
+                return (
+                  <div key={order.id} className="p-4 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-semibold text-foreground ${isOpen ? "" : "truncate"}`}>{order.service_name}</p>
+                        <p className="text-xs text-muted-foreground capitalize mt-0.5">
+                          {(serviceTypeLabels[order.service_type] || order.service_type.replace(/_/g, " "))} · #{order.id}
+                        </p>
+                        {qty && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Qty: <span className="font-medium text-foreground">{qty}</span>
+                            {rate && <> · Rate: <span className="font-medium text-foreground">{formatAmount(String(rate))}/1k</span></>}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(order.created_at).toLocaleDateString("en-NG", {
+                            day: "numeric", month: "short", year: "numeric",
+                          })}
+                        </p>
+                        {order.service_name.length > 40 && (
+                          <button
+                            onClick={() => setExpandedId(isOpen ? null : order.id)}
+                            className="flex items-center gap-0.5 text-[11px] text-primary mt-1"
+                          >
+                            {isOpen ? <><ChevronUp className="h-3 w-3" /> Less</> : <><ChevronDown className="h-3 w-3" /> More</>}
+                          </button>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0 space-y-1.5">
+                        <p className="text-sm font-bold text-foreground">{formatAmount(order.amount)}</p>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-semibold ${statusColors[order.status] || ""}`}
+                        >
+                          {statusLabels[order.status] || order.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* ── Desktop table (hidden below lg) ── */}
@@ -265,13 +286,20 @@ const OrdersPage = () => {
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Order ID</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Service</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Type</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Qty</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Rate /1k</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Price</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Status</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((order, index) => (
+                  {filtered.map((order, index) => {
+                    const ext = order.external_data as Record<string, string | number>;
+                    const qty = order.service_type === "boosting" ? ext?.quantity : null;
+                    const rate = order.service_type === "boosting" ? ext?.rate_per_k_ngn : null;
+                    const isOpen = expandedId === order.id;
+                    return (
                     <tr
                       key={order.id}
                       className={`border-b border-border/30 transition-colors hover:bg-muted/40 ${
@@ -279,11 +307,23 @@ const OrdersPage = () => {
                       }`}
                     >
                       <td className="px-6 py-4 text-sm font-semibold text-foreground">#{order.id}</td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-medium text-foreground">{order.service_name}</p>
+                      <td className="px-6 py-4 max-w-[240px]">
+                        <p className={`text-sm font-medium text-foreground ${isOpen ? "" : "truncate"}`}>{order.service_name}</p>
+                        {order.service_name.length > 35 && (
+                          <button
+                            onClick={() => setExpandedId(isOpen ? null : order.id)}
+                            className="flex items-center gap-0.5 text-[11px] text-primary mt-0.5"
+                          >
+                            {isOpen ? <><ChevronUp className="h-3 w-3" /> Less</> : <><ChevronDown className="h-3 w-3" /> More</>}
+                          </button>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground capitalize">
                         {serviceTypeLabels[order.service_type] || order.service_type.replace(/_/g, " ")}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-foreground">{qty ?? <span className="text-muted-foreground">—</span>}</td>
+                      <td className="px-6 py-4 text-sm text-foreground">
+                        {rate ? formatAmount(String(rate)) : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-foreground">
                         {formatAmount(order.amount)}
@@ -302,7 +342,8 @@ const OrdersPage = () => {
                         })}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
