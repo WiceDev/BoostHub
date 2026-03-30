@@ -68,7 +68,8 @@ class Order(models.Model):
             self.user.wallet.credit(
                 amount=self.amount,
                 description=f'Refund for Order #{self.id} - {self.service_name}',
-                reference=f'REFUND-{self.id}'
+                reference=f'REFUND-{self.id}',
+                transaction_type='refund'
             )
             self.status = 'refunded'
             self.save()

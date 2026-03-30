@@ -35,14 +35,14 @@ class Wallet(models.Model):
             description=description
         )
         return True
-    def credit(self, amount, description='Deposit', reference=''):
+    def credit(self, amount, description='Deposit', reference='', transaction_type='credit'):
         amount = Decimal(str(amount))
         self.balance += amount
         self.save()
         Transaction.objects.create(
             wallet=self,
             amount=amount,
-            transaction_type='credit',
+            transaction_type=transaction_type,
             status='completed',
             description=description,
             reference=reference

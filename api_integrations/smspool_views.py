@@ -308,7 +308,8 @@ def api_numbers_cancel(request, order_id):
     order.user.wallet.credit(
         amount=order.amount,
         description=f'Refund for cancelled Order #{order.id} - {order.service_name}',
-        reference=f'REFUND-{order.id}'
+        reference=f'REFUND-{order.id}',
+        transaction_type='refund'
     )
     order.status = 'cancelled'
     order.notes = 'Cancelled by user.'
