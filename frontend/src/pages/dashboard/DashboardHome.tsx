@@ -343,23 +343,42 @@ const DashboardHome = () => {
       {/* Announcements — mobile only (immediately after header) */}
       {announcements && announcements.length > 0 && (
         <div className="sm:hidden space-y-3">
-          <h2 className="text-base font-semibold text-foreground px-0.5">Updates</h2>
-          {announcements.map((a) => (
+          <div className="flex items-center justify-between px-0.5">
+            <h2 className="text-base font-semibold text-foreground">Updates</h2>
+            {announcements.length > 2 && (
+              <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                See all <ChevronRight className="h-3 w-3" />
+              </Link>
+            )}
+          </div>
+          {announcements.slice(0, 2).map((a) => (
             <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
               <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
               <div className="relative z-10 p-5">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                    <Megaphone className="h-4 w-4 text-primary" />
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                      <Megaphone className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
                   </div>
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
                 </div>
                 <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
                 <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed">{a.body}</p>
               </div>
             </div>
           ))}
+          {announcements.length > 2 && (
+            <Link to="/dashboard/updates" className="block">
+              <div className="glass-card px-4 py-3 text-center text-sm font-medium text-primary hover:bg-primary/5 transition-colors rounded-2xl">
+                See {announcements.length - 2} more update{announcements.length - 2 > 1 ? "s" : ""}
+              </div>
+            </Link>
+          )}
         </div>
       )}
 
@@ -444,20 +463,37 @@ const DashboardHome = () => {
         {/* Announcements — desktop only (beside chart) */}
         {announcements && announcements.length > 0 ? (
           <div className="hidden sm:flex lg:col-span-2 flex-col gap-3">
-            <h2 className="text-base font-semibold text-foreground">Updates</h2>
-            {announcements.map((a) => (
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Updates</h2>
+              {announcements.length > 1 && (
+                <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                  See all <ChevronRight className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
+            {announcements.slice(0, 1).map((a) => (
               <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative z-10 p-5 h-full flex flex-col">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                      <Megaphone className="h-4 w-4 text-primary" />
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                        <Megaphone className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
                   </div>
                   <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
                   <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
+                  {announcements.length > 1 && (
+                    <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                      See {announcements.length - 1} older update{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

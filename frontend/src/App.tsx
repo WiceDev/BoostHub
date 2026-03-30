@@ -40,6 +40,7 @@ import AdminDepositsPage from "./pages/admin/AdminDepositsPage";
 import AdminSecurityPage from "./pages/admin/AdminSecurityPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import TicketsPage from "./pages/dashboard/TicketsPage";
+import UpdatesPage from "./pages/dashboard/UpdatesPage";
 import AdminTicketsPage from "./pages/admin/AdminTicketsPage";
 
 const queryClient = new QueryClient();
@@ -120,6 +121,7 @@ const App = () => (
             <Route path="/dashboard/orders" element={<ProtectedRoute><DashboardLayout><OrdersPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/profile" element={<ProtectedRoute><DashboardLayout><ProfilePage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/tickets" element={<ProtectedRoute><DashboardLayout><TicketsPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/dashboard/updates" element={<ProtectedRoute><DashboardLayout><UpdatesPage /></DashboardLayout></ProtectedRoute>} />
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><DashboardLayout><AdminUsersPage /></DashboardLayout></AdminRoute>} />
