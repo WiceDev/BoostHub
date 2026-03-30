@@ -285,7 +285,7 @@ const BoostingPage = () => {
               const categories = grouped[platform];
               const totalServices = Object.values(categories).reduce((sum, arr) => sum + arr.length, 0);
               const rowIdx = getRowIndex(idx);
-              const isExpanded = isMobile ? expandedPlatforms.has(platform) : expandedRow === rowIdx;
+              const isExpanded = isMobile ? expandedPlatforms.has(platform) : activePlatform === platform;
               return (
                 <div
                   key={platform}
