@@ -340,6 +340,23 @@ const DashboardHome = () => {
         <div className="hidden sm:block absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
       </div>
 
+      {/* Announcements — mobile only (immediately after header) */}
+      {announcements && announcements.length > 0 && (
+        <div className="sm:hidden space-y-3">
+          {announcements.map((a) => (
+            <div key={a.id} className="glass-card p-4 flex gap-4">
+              <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
+                <Megaphone className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{a.title}</p>
+                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stat Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -365,23 +382,6 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Announcements */}
-      {announcements && announcements.length > 0 && (
-        <div className="space-y-3">
-          {announcements.map((a) => (
-            <div key={a.id} className="glass-card p-4 sm:p-5 flex gap-4">
-              <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
-                <Megaphone className="h-4 w-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{a.title}</p>
-                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Quick Services */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -404,7 +404,7 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Chart + Transactions Row */}
+      {/* Deposit Overview + Announcements (desktop side by side) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Chart */}
         <div className="lg:col-span-3 glass-card">
@@ -435,8 +435,30 @@ const DashboardHome = () => {
           </div>
         </div>
 
+        {/* Announcements — desktop only (beside chart) */}
+        {announcements && announcements.length > 0 ? (
+          <div className="hidden sm:flex lg:col-span-2 flex-col gap-3">
+            {announcements.map((a) => (
+              <div key={a.id} className="glass-card p-4 sm:p-5 flex gap-4">
+                <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
+                  <Megaphone className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{a.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="hidden sm:block lg:col-span-2" />
+        )}
+      </div>
+
+      {/* Recent Transactions + Recent Orders (side by side on desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Transactions */}
-        <div className="lg:col-span-2 glass-card">
+        <div className="glass-card">
           <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Recent Transactions</h2>
             <span className="text-[11px] text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-full">
@@ -479,30 +501,27 @@ const DashboardHome = () => {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Recent Orders */}
-      <div className="glass-card">
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Recent Orders</h2>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Your latest service orders</p>
+        {/* Recent Orders */}
+        <div className="glass-card">
+          <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Recent Orders</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Your latest service orders</p>
+            </div>
+            {recentOrders.length > 0 && (
+              <Link to="/dashboard/orders" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                View All <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
           </div>
-          {recentOrders.length > 0 && (
-            <Link to="/dashboard/orders" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-              View All <ArrowRight className="h-3 w-3" />
-            </Link>
-          )}
-        </div>
-        {recentOrders.length === 0 ? (
-          <div className="px-5 py-10 text-center text-muted-foreground text-sm">
-            <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-15" />
-            No orders yet
-          </div>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <div className="lg:hidden divide-y divide-border/20">
+          {recentOrders.length === 0 ? (
+            <div className="px-5 py-10 text-center text-muted-foreground text-sm">
+              <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-15" />
+              No orders yet
+            </div>
+          ) : (
+            <div className="divide-y divide-border/20">
               {recentOrders.map((order) => (
                 <div key={order.id} className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
                   <div className="min-w-0 flex-1">
@@ -518,37 +537,8 @@ const DashboardHome = () => {
                 </div>
               ))}
             </div>
-            {/* Desktop table */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/30">
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-5 py-3">Order ID</th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-5 py-3">Service</th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-5 py-3">Amount</th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-5 py-3">Status</th>
-                    <th className="text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-5 py-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                      <td className="px-5 py-3.5 text-[13px] font-medium text-foreground">#{order.id}</td>
-                      <td className="px-5 py-3.5 text-[13px] text-foreground">{order.service_name}</td>
-                      <td className="px-5 py-3.5 text-[13px] font-semibold text-foreground">{formatAmount(order.amount)}</td>
-                      <td className="px-5 py-3.5">
-                        <Badge variant="outline" className={`text-[10px] capitalize rounded-full px-2.5 ${statusColors[order.status] || ""}`}>
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3.5 text-[13px] text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
