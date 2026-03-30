@@ -188,17 +188,17 @@ const ProfilePage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>First Name</Label>
-              <Input value={firstName} readOnly />
+              <Input value={firstName} readOnly disabled className="bg-muted/50 cursor-not-allowed opacity-60" />
             </div>
             <div className="space-y-2">
               <Label>Last Name</Label>
-              <Input value={lastName} readOnly />
+              <Input value={lastName} readOnly disabled className="bg-muted/50 cursor-not-allowed opacity-60" />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
             <div className="flex items-center gap-2">
-              <Input value={user?.email || ""} readOnly />
+              <Input value={user?.email || ""} readOnly disabled className="bg-muted/50 cursor-not-allowed opacity-60" />
               {user?.is_verified ? (
                 <Badge className="bg-success/10 text-success border-success/20 flex items-center gap-1 flex-shrink-0">
                   <CheckCircle className="h-3 w-3" /> Verified
