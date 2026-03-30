@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchAnnouncements } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const UpdatesPage = () => {
+const AnnouncementsPage = () => {
   const { data: announcements, isLoading } = useQuery({
     queryKey: ["announcements"],
     queryFn: fetchAnnouncements,
@@ -24,7 +24,7 @@ const UpdatesPage = () => {
             <Megaphone className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Updates</h1>
+            <h1 className="text-2xl font-bold text-foreground">Announcements</h1>
             <p className="text-muted-foreground text-sm">Latest news and announcements from the team</p>
           </div>
         </div>
@@ -62,7 +62,7 @@ const UpdatesPage = () => {
                       <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
                         <Megaphone className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Announcement</span>
                     </div>
                     <span className="text-[11px] text-muted-foreground">
                       {new Date(a.created_at).toLocaleDateString("en-US", {
@@ -89,4 +89,4 @@ const UpdatesPage = () => {
   );
 };
 
-export default UpdatesPage;
+export default AnnouncementsPage;

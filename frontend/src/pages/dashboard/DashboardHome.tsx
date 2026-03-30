@@ -340,48 +340,6 @@ const DashboardHome = () => {
         <div className="hidden sm:block absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
       </div>
 
-      {/* Announcements — mobile only (immediately after header) */}
-      {announcements && announcements.length > 0 && (
-        <div className="sm:hidden space-y-3">
-          <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-base font-semibold text-foreground">Updates</h2>
-            {announcements.length > 2 && (
-              <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-                See all <ChevronRight className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-          {announcements.slice(0, 2).map((a) => (
-            <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="relative z-10 p-5">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                      <Megaphone className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground">
-                    {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
-                </div>
-                <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed">{a.body}</p>
-              </div>
-            </div>
-          ))}
-          {announcements.length > 2 && (
-            <Link to="/dashboard/updates" className="block">
-              <div className="glass-card px-4 py-3 text-center text-sm font-medium text-primary hover:bg-primary/5 transition-colors rounded-2xl">
-                See {announcements.length - 2} more update{announcements.length - 2 > 1 ? "s" : ""}
-              </div>
-            </Link>
-          )}
-        </div>
-      )}
-
       {/* Stat Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -407,29 +365,74 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Quick Services */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-foreground">Quick Services</h2>
-          <Link to="/dashboard/boosting" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-            View all <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {quickServices.map((service) => (
-            <Link key={service.path} to={service.path}
-              className="glass-card p-4 group hover:border-primary/20 hover:shadow-md transition-all cursor-pointer">
-              <div className={`h-10 w-10 rounded-xl ${service.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-105 transition-transform`}>
-                <service.icon className="h-5 w-5 text-white" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">{service.label}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{service.desc}</p>
+      {/* Quick Services + Announcements (side by side on desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Quick Services */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-foreground">Quick Services</h2>
+            <Link to="/dashboard/boosting" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+              View all <ChevronRight className="h-3 w-3" />
             </Link>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {quickServices.map((service) => (
+              <Link key={service.path} to={service.path}
+                className="glass-card p-4 group hover:border-primary/20 hover:shadow-md transition-all cursor-pointer">
+                <div className={`h-10 w-10 rounded-xl ${service.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-105 transition-transform`}>
+                  <service.icon className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">{service.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{service.desc}</p>
+              </Link>
+            ))}
+          </div>
         </div>
+
+        {/* Announcements */}
+        {announcements && announcements.length > 0 ? (
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Announcements</h2>
+              {announcements.length > 1 && (
+                <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                  See all <ChevronRight className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
+            {announcements.slice(0, 1).map((a) => (
+              <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10 p-5 flex flex-col h-full">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                        <Megaphone className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Announcement</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                  </div>
+                  <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
+                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
+                  {announcements.length > 1 && (
+                    <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                      See {announcements.length - 1} older announcement{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="lg:col-span-2 hidden lg:block" />
+        )}
       </div>
 
-      {/* Deposit Overview + Announcements (desktop side by side) */}
+      {/* Deposit Overview + Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Chart */}
         <div className="lg:col-span-3 glass-card">
@@ -460,53 +463,8 @@ const DashboardHome = () => {
           </div>
         </div>
 
-        {/* Announcements — desktop only (beside chart) */}
-        {announcements && announcements.length > 0 ? (
-          <div className="hidden sm:flex lg:col-span-2 flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">Updates</h2>
-              {announcements.length > 1 && (
-                <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-                  See all <ChevronRight className="h-3 w-3" />
-                </Link>
-              )}
-            </div>
-            {announcements.slice(0, 1).map((a) => (
-              <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="relative z-10 p-5 h-full flex flex-col">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                        <Megaphone className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
-                    </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                  </div>
-                  <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
-                  {announcements.length > 1 && (
-                    <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                      See {announcements.length - 1} older update{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="hidden sm:block lg:col-span-2" />
-        )}
-      </div>
-
-      {/* Recent Transactions + Recent Orders (side by side on desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Transactions */}
-        <div className="glass-card">
+        <div className="lg:col-span-2 glass-card">
           <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Recent Transactions</h2>
             <span className="text-[11px] text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-full">
@@ -549,44 +507,44 @@ const DashboardHome = () => {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Recent Orders */}
-        <div className="glass-card">
-          <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Recent Orders</h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Your latest service orders</p>
-            </div>
-            {recentOrders.length > 0 && (
-              <Link to="/dashboard/orders" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
+      {/* Recent Orders */}
+      <div className="glass-card">
+        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Recent Orders</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Your latest service orders</p>
           </div>
-          {recentOrders.length === 0 ? (
-            <div className="px-5 py-10 text-center text-muted-foreground text-sm">
-              <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-15" />
-              No orders yet
-            </div>
-          ) : (
-            <div className="divide-y divide-border/20">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium text-foreground truncate">{order.service_name}</p>
-                    <p className="text-[11px] text-muted-foreground">#{order.id} · {new Date(order.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0 space-y-1">
-                    <p className="text-[13px] font-semibold text-foreground">{formatAmount(order.amount)}</p>
-                    <Badge variant="outline" className={`text-[10px] capitalize rounded-full px-2.5 ${statusColors[order.status] || ""}`}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {recentOrders.length > 0 && (
+            <Link to="/dashboard/orders" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+              View All <ArrowRight className="h-3 w-3" />
+            </Link>
           )}
         </div>
+        {recentOrders.length === 0 ? (
+          <div className="px-5 py-10 text-center text-muted-foreground text-sm">
+            <ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-15" />
+            No orders yet
+          </div>
+        ) : (
+          <div className="divide-y divide-border/20">
+            {recentOrders.map((order) => (
+              <div key={order.id} className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-muted/20 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-foreground truncate">{order.service_name}</p>
+                  <p className="text-[11px] text-muted-foreground">#{order.id} · {new Date(order.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right flex-shrink-0 space-y-1">
+                  <p className="text-[13px] font-semibold text-foreground">{formatAmount(order.amount)}</p>
+                  <Badge variant="outline" className={`text-[10px] capitalize rounded-full px-2.5 ${statusColors[order.status] || ""}`}>
+                    {order.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
