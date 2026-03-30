@@ -91,7 +91,6 @@ function SearchableDropdown<T extends { id: string; name: string }>({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-sm bg-muted/30 rounded-md outline-none border-0 placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30"
-                autoFocus
               />
             </div>
           </div>
@@ -307,6 +306,8 @@ const NumbersPage = () => {
     setActiveOrderId(null);
     setPhoneNumber("");
     setSmsCode(null);
+    setCountry("");
+    setService("");
   };
 
   return (
