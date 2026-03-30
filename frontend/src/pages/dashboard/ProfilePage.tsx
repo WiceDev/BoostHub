@@ -519,9 +519,9 @@ const ProfilePage = () => {
               <div className="flex items-center justify-between py-3 border-b border-border">
                 <div>
                   <p className="text-sm font-medium text-foreground">Two-Factor Authentication</p>
-                  <p className="text-xs text-muted-foreground">Available for admin accounts</p>
+                  <p className="text-xs text-muted-foreground">Add an extra layer of security to your account</p>
                 </div>
-                <Badge variant="outline" className="text-xs text-muted-foreground">Admin only</Badge>
+                <Button variant="outline" size="sm" disabled>Coming Soon</Button>
               </div>
             )}
 

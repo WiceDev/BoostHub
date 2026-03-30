@@ -340,9 +340,9 @@ const DashboardHome = () => {
         <div className="hidden sm:block absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
       </div>
 
-      {/* Announcements — full width, first section */}
+      {/* Mobile only: Announcements full-width first */}
       {announcements && announcements.length > 0 && (
-        <div className="space-y-3">
+        <div className="sm:hidden space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-foreground">Announcements</h2>
             {announcements.length > 1 && (
@@ -357,13 +357,12 @@ const DashboardHome = () => {
             const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
             const badgeLabel = isToday
               ? "Updates Today"
-              : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
-                " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+              : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
             return (
               <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="relative z-10 p-5 sm:p-6">
+                <div className="absolute top-0 right-0 w-56 h-56 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10 p-5">
                   <div className="flex items-center gap-2.5 mb-3">
                     <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
                       <Megaphone className="h-4 w-4 text-primary" />
@@ -409,15 +408,15 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Quick Services */}
-      <div>
+      {/* Mobile only: Quick Services standalone */}
+      <div className="sm:hidden">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-foreground">Quick Services</h2>
           <Link to="/dashboard/boosting" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
             View all <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {quickServices.map((service) => (
             <Link key={service.path} to={service.path}
               className="glass-card p-4 group hover:border-primary/20 hover:shadow-md transition-all cursor-pointer">
@@ -429,6 +428,71 @@ const DashboardHome = () => {
             </Link>
           ))}
         </div>
+      </div>
+
+      {/* Desktop only: Quick Services + Announcements side by side */}
+      <div className="hidden sm:grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-foreground">Quick Services</h2>
+            <Link to="/dashboard/boosting" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+              View all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {quickServices.map((service) => (
+              <Link key={service.path} to={service.path}
+                className="glass-card p-4 group hover:border-primary/20 hover:shadow-md transition-all cursor-pointer">
+                <div className={`h-10 w-10 rounded-xl ${service.color} flex items-center justify-center mb-3 shadow-lg group-hover:scale-105 transition-transform`}>
+                  <service.icon className="h-5 w-5 text-white" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">{service.label}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{service.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+        {announcements && announcements.length > 0 ? (
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">Announcements</h2>
+              {announcements.length > 1 && (
+                <Link to="/dashboard/updates" className="text-xs text-primary hover:underline font-medium flex items-center gap-1">
+                  See all <ChevronRight className="h-3 w-3" />
+                </Link>
+              )}
+            </div>
+            {announcements.slice(0, 1).map((a) => {
+              const d = new Date(a.created_at);
+              const now = new Date();
+              const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+              const badgeLabel = isToday
+                ? "Updates Today"
+                : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="relative z-10 p-5 flex flex-col h-full">
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                        <Megaphone className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-widest text-primary">{badgeLabel}</span>
+                    </div>
+                    <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
+                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
+                    {announcements.length > 1 && (
+                      <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                        See {announcements.length - 1} older announcement{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <div className="lg:col-span-2 hidden lg:block" />}
       </div>
 
       {/* Deposit Overview + Recent Transactions */}
