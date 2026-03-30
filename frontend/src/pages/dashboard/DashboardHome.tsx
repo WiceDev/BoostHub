@@ -343,6 +343,7 @@ const DashboardHome = () => {
       {/* Announcements — mobile only (immediately after header) */}
       {announcements && announcements.length > 0 && (
         <div className="sm:hidden space-y-3">
+          <h2 className="text-base font-semibold text-foreground px-0.5">Updates</h2>
           {announcements.map((a) => (
             <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
               <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
@@ -443,6 +444,7 @@ const DashboardHome = () => {
         {/* Announcements — desktop only (beside chart) */}
         {announcements && announcements.length > 0 ? (
           <div className="hidden sm:flex lg:col-span-2 flex-col gap-3">
+            <h2 className="text-base font-semibold text-foreground">Updates</h2>
             {announcements.map((a) => (
               <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
