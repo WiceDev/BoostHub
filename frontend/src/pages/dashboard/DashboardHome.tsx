@@ -284,8 +284,8 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 max-w-[1400px]">
-      {/* Welcome + Balance Banner */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-t-2xl">
+      {/* Welcome + Balance Banner — desktop only */}
+      <div className="hidden sm:block relative overflow-hidden rounded-2xl sm:rounded-t-2xl">
         {/* Gradient background — fades from primary into the page */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-blue-600/10" />
