@@ -219,9 +219,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="md:hidden px-4 py-4 border-b border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-base font-bold text-foreground truncate">
-              {user?.first_name || user?.email?.split("@")[0]}
+              Hello {user?.first_name || user?.email?.split("@")[0]}
             </p>
-            <p className="text-base font-bold text-foreground flex-shrink-0">{balanceDisplay}</p>
+            <div className="flex-shrink-0 text-right">
+              <p className="text-[11px] text-muted-foreground">Available Balance</p>
+              <p className="text-base font-bold text-foreground">{balanceDisplay}</p>
+            </div>
           </div>
           <Link to="/dashboard/deposit" onClick={() => setMobileSidebarOpen(false)}
             className="mt-3 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-primary text-white text-xs font-semibold shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors">
