@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
-  Phone, Search, Loader2, AlertTriangle, CheckCircle2, Copy,
-  RefreshCw, Wallet, X, Clock, ShieldCheck, ChevronDown, Check,
-  RotateCcw,
+  Phone, Loader2, AlertTriangle, CheckCircle2, Copy,
+  Wallet, X, Clock, ShieldCheck, ChevronDown, Check,
+  RotateCcw, ChevronsUpDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchSMSCountries, fetchSMSServices, fetchSMSPrice,
@@ -35,62 +36,7 @@ function SearchableDropdown<T extends { id: string; name: string }>({
   items, value, onChange, placeholder, searchPlaceholder, loading, loadingText,
 }: SearchableDropdownProps<T>) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
-
   const selected = items.find((item) => item.id === value);
-
-  const filtered = useMemo(() => {
-    if (!search) return items;
-    const lower = search.toLowerCase();
-    return items.filter((item) => item.name.toLowerCase().includes(lower));
-  }, [items, search]);
-
-  const updatePosition = useCallback(() => {
-    if (buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-    }
-  }, []);
-
-  const handleToggle = () => {
-    if (!open) updatePosition();
-    setOpen((prev) => !prev);
-    setSearch("");
-  };
-
-  // Close on outside click/touch
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node;
-      if (
-        buttonRef.current && !buttonRef.current.contains(target) &&
-        dropdownRef.current && !dropdownRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
-    };
-  }, [open]);
-
-  // Reposition on scroll or resize
-  useEffect(() => {
-    if (!open) return;
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-    return () => {
-      window.removeEventListener("scroll", updatePosition, true);
-      window.removeEventListener("resize", updatePosition);
-    };
-  }, [open, updatePosition]);
 
   if (loading) {
     return (
@@ -101,69 +47,42 @@ function SearchableDropdown<T extends { id: string; name: string }>({
     );
   }
 
-  const maxListHeight = typeof window !== "undefined"
-    ? Math.min(280, window.innerHeight - dropPos.top - 8)
-    : 280;
-
   return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={handleToggle}
-        className={cn(
-          "w-full h-11 px-3 rounded-lg border border-border/30 bg-background flex items-center justify-between text-sm transition-colors hover:bg-muted/30",
-          !selected && "text-muted-foreground",
-        )}
-      >
-        <span className="truncate">{selected ? selected.name : placeholder}</span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 opacity-50 transition-transform", open && "rotate-180")} />
-      </button>
-
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{ position: "fixed", top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 9999 }}
-          className="rounded-lg border border-border/30 bg-popover shadow-xl animate-fade-in"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full h-11 px-3 rounded-lg border border-border/30 bg-background flex items-center justify-between text-sm transition-colors hover:bg-muted/30"
         >
-          <div className="p-2 border-b border-border/30">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder={searchPlaceholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-sm bg-muted/30 rounded-md outline-none border-0 placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30"
-              />
-            </div>
-          </div>
-          <div style={{ maxHeight: maxListHeight }} className="overflow-y-auto p-1">
-            {filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No results found.</p>
-            ) : (
-              filtered.map((item) => (
-                <button
+          <span className={selected ? "truncate text-foreground" : "truncate text-muted-foreground"}>
+            {selected ? selected.name : placeholder}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" side="bottom">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList className="max-h-[280px]">
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {items.map((item) => (
+                <CommandItem
                   key={item.id}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); onChange(item.id); setOpen(false); }}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-3 text-sm rounded-md transition-colors text-left",
-                    item.id === value
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "hover:bg-muted/50 text-foreground"
-                  )}
+                  value={item.name}
+                  onSelect={() => { onChange(item.id); setOpen(false); }}
                 >
-                  <Check className={cn("h-3.5 w-3.5 shrink-0", item.id === value ? "opacity-100" : "opacity-0")} />
-                  <span className="truncate">{item.name}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
+                  <Check className={cn("mr-2 h-4 w-4", value === item.id ? "opacity-100" : "opacity-0")} />
+                  {item.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
