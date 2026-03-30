@@ -123,6 +123,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'check_sms_orders',
         'schedule': 60,  # every minute (SMS is time-sensitive)
     },
+    'warm-rss-cache': {
+        'task': 'warm_rss_cache',
+        'schedule': 600,  # every 10 minutes (before 15-min cache expires)
+    },
+    'warm-smspool-cache': {
+        'task': 'warm_smspool_cache',
+        'schedule': 3000,  # every 50 minutes (before 1-hour cache expires)
+    },
 }
 # Email — uses SMTP if configured, otherwise falls back to console
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')

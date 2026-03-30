@@ -131,3 +131,36 @@ def check_sms_orders():
             logger.error(f'Unexpected error checking SMS order #{order.id}: {e}')
 
     return f'Checked {orders.count()} SMS orders. Updated: {updated}, Errors: {errors}'
+
+
+@shared_task(name='warm_rss_cache')
+def warm_rss_cache():
+    """Pre-warm the RSS services cache before it expires."""
+    from .api_views import _get_services_cached
+    from django.core.cache import cache
+    cache.delete('rss_services_list')
+    try:
+        _get_services_cached()
+        return 'RSS cache warmed.'
+    except Exception as e:
+        logger.warning(f'RSS cache warm failed: {e}')
+        return f'RSS cache warm error: {e}'
+
+
+@shared_task(name='warm_smspool_cache')
+def warm_smspool_cache():
+    """Pre-warm the SMSPool countries and services cache before it expires."""
+    from django.core.cache import cache
+    cache.delete('smspool_countries')
+    cache.delete('smspool_services')
+    try:
+        client = SMSPoolClient()
+        from django.core.cache import cache as c
+        countries = client.get_countries()
+        c.set('smspool_countries', countries, 3600)
+        services = client.get_services()
+        c.set('smspool_services', services, 3600)
+        return 'SMSPool cache warmed.'
+    except Exception as e:
+        logger.warning(f'SMSPool cache warm failed: {e}')
+        return f'SMSPool cache warm error: {e}'
