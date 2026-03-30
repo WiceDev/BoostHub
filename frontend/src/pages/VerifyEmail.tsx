@@ -76,6 +76,14 @@ const VerifyEmail = () => {
     }
   };
 
+  const maskEmail = (email: string) => {
+    const [local, domain] = email.split("@");
+    if (local.length <= 5) {
+      return `${local.slice(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+    }
+    return `${local.slice(0, 3)}${"*".repeat(local.length - 5)}${local.slice(-2)}@${domain}`;
+  };
+
   // Token verification mode
   if (token) {
     return (
@@ -154,7 +162,7 @@ const VerifyEmail = () => {
             <h2 className="text-xl font-bold text-foreground">Check your email</h2>
             <p className="text-sm text-muted-foreground mt-2">
               We've sent a verification link to{" "}
-              <strong className="text-foreground">{user?.email}</strong>.
+              <strong className="text-foreground">{user?.email ? maskEmail(user.email) : ""}</strong>.
               Please click the link in the email to verify your account.
             </p>
           </div>

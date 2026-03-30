@@ -188,11 +188,11 @@ const ProfilePage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>First Name</Label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+              <Input value={firstName} readOnly />
             </div>
             <div className="space-y-2">
               <Label>Last Name</Label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+              <Input value={lastName} readOnly />
             </div>
           </div>
           <div className="space-y-2">
