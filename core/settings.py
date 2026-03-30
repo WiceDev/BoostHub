@@ -193,4 +193,3 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 # Session settings
 SESSION_COOKIE_AGE = 7 * 24 * 60 * 60          # 1 week
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False         # persist across browser restarts
-SESSION_SAVE_EVERY_REQUEST = True               # refresh expiry on each request
