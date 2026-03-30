@@ -163,7 +163,22 @@ const ProfilePage = () => {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+      <div className="relative overflow-hidden rounded-2xl">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-blue-600/10" />
+        <div className="absolute -top-10 -left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 header-diamond-pattern pointer-events-none" />
+        <div className="p-6 md:p-8 relative z-20 flex items-center gap-4">
+          <div className="h-11 w-11 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+            <p className="text-muted-foreground text-sm">Manage your account details and security</p>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
