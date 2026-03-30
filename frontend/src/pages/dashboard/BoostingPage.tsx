@@ -191,10 +191,8 @@ const BoostingPage = () => {
 
   const toggleCategory = (catKey: string) => {
     setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(catKey)) next.delete(catKey);
-      else next.add(catKey);
-      return next;
+      if (prev.has(catKey)) return new Set();
+      return new Set([catKey]);
     });
   };
 

@@ -8,7 +8,7 @@ import {
   Gift, TrendingUp, Link as LinkIcon, Phone, ShieldCheck, ShieldOff,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { updateProfile, changePassword, fetchReferralStats, fetch2faSetup, enable2fa, disable2fa, ApiError } from "@/lib/api";
+import { updateProfile, changePassword, fetchReferralStats, fetch2faSetup, enable2fa, disable2fa, logout as apiLogout, ApiError } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -31,7 +31,7 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 }
 
 const ProfilePage = () => {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, handleLogout } = useAuth();
   const { formatAmount } = useCurrency();
   const queryClient = useQueryClient();
   const [firstName, setFirstName] = useState(user?.first_name || "");
@@ -149,14 +149,12 @@ const ProfilePage = () => {
     setSavingPassword(true);
     try {
       await changePassword(currentPassword, newPassword);
-      toast.success("Password updated successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      toast.success("Password updated! Please log in again.");
+      try { await apiLogout(); } catch {}
+      handleLogout();
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to update password.";
       toast.error(message);
-    } finally {
       setSavingPassword(false);
     }
   };
