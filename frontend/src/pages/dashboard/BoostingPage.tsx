@@ -203,7 +203,7 @@ const BoostingPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-t-2xl">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-blue-600/10" />
         <div className="absolute -top-10 -left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
@@ -227,6 +227,7 @@ const BoostingPage = () => {
             </Button>
           </Link>
         </div>
+        <div className="hidden sm:block absolute bottom-0 inset-x-0 h-20 bg-gradient-to-b from-transparent to-background pointer-events-none" />
       </div>
 
       {/* Search */}
