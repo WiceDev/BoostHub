@@ -344,13 +344,18 @@ const DashboardHome = () => {
       {announcements && announcements.length > 0 && (
         <div className="sm:hidden space-y-3">
           {announcements.map((a) => (
-            <div key={a.id} className="glass-card p-4 flex gap-4">
-              <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
-                <Megaphone className="h-4 w-4 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{a.title}</p>
-                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
+            <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="relative z-10 p-5">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                    <Megaphone className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
+                </div>
+                <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
+                <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed">{a.body}</p>
               </div>
             </div>
           ))}
@@ -439,13 +444,18 @@ const DashboardHome = () => {
         {announcements && announcements.length > 0 ? (
           <div className="hidden sm:flex lg:col-span-2 flex-col gap-3">
             {announcements.map((a) => (
-              <div key={a.id} className="glass-card p-4 sm:p-5 flex gap-4">
-                <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
-                  <Megaphone className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{a.title}</p>
-                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
+              <div key={a.id} className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-blue-600/5 flex-1">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-36 h-36 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative z-10 p-5 h-full flex flex-col">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="h-8 w-8 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                      <Megaphone className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-primary">Update</span>
+                  </div>
+                  <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
+                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
                 </div>
               </div>
             ))}
