@@ -295,18 +295,18 @@ const DashboardHome = () => {
 
         <div className="p-4 sm:p-6 lg:p-8 relative z-20">
 
-          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">Welcome back,</p>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mt-1">
+          <div className="relative flex flex-row items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-xs sm:text-sm font-medium">Welcome back,</p>
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 truncate">
                 {user?.first_name || "there"} {user?.last_name?.[0] ? user.last_name[0] + "." : ""}
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">Here's your account overview</p>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 hidden sm:block">Here's your account overview</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               <div className="text-right">
                 <p className="text-muted-foreground text-xs font-medium mb-1">Available Balance</p>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">{balanceStr}</p>
+                <p className="text-xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">{balanceStr}</p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <button onClick={() => setShowBalance(!showBalance)}
