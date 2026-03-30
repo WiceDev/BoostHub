@@ -4,7 +4,7 @@ from django.http import StreamingHttpResponse, HttpResponse
 from django.db import close_old_connections
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Notification
+from .models import Notification, Announcement
 from .serializers import NotificationSerializer
 
 
@@ -96,3 +96,12 @@ def sse_notifications(request):
     response['X-Accel-Buffering'] = 'no'   # disable nginx buffering
     response['Connection'] = 'keep-alive'
     return response
+
+
+@api_view(['GET'])
+def api_announcements(request):
+    """Return active announcements ordered by newest first."""
+    announcements = Announcement.objects.filter(is_active=True).values(
+        'id', 'title', 'body', 'created_at'
+    )
+    return Response(list(announcements))

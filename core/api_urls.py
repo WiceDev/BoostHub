@@ -19,7 +19,7 @@ from services.api_views import (
     api_accounts_list, api_place_account_order,
     api_gifts, api_gift_detail, api_webdev_portfolio, api_public_settings,
 )
-from notifications.api_views import api_notifications, api_mark_notifications_read, sse_notifications
+from notifications.api_views import api_notifications, api_mark_notifications_read, sse_notifications, api_announcements
 from api_integrations.api_views import api_boosting_services, api_boosting_order, api_boosting_order_status
 from api_integrations.smspool_views import (
     api_numbers_countries, api_numbers_services, api_numbers_price,
@@ -112,6 +112,7 @@ urlpatterns = [
     path('notifications/', api_notifications, name='api_notifications'),
     path('notifications/stream/', sse_notifications, name='sse_notifications'),
     path('notifications/read/', api_mark_notifications_read, name='api_mark_notifications_read'),
+    path('announcements/', api_announcements, name='api_announcements'),
 
     # Gifts
     path('gifts/', api_gifts, name='api_gifts'),

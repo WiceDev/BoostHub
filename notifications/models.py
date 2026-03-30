@@ -28,3 +28,17 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.user.email})"
+
+
+class Announcement(models.Model):
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    is_active = models.BooleanField(default=True, help_text='Only active announcements are shown to users')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title

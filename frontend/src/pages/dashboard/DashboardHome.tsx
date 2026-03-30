@@ -3,7 +3,7 @@ import {
   Wallet, ShoppingBag, Clock, ArrowUpRight, ArrowDownRight,
   TrendingUp, TrendingDown, RotateCcw, Eye, EyeOff, PlusCircle,
   Activity, Phone, UserCheck, Gift, Globe, ChevronRight,
-  ArrowRight, AlertCircle,
+  ArrowRight, AlertCircle, Megaphone,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchDashboardStats, fetchOrders, fetchWallet, fetchTransactions, type Transaction } from "@/lib/api";
+import { fetchDashboardStats, fetchOrders, fetchWallet, fetchTransactions, fetchAnnouncements, type Transaction } from "@/lib/api";
 import { useCurrency } from "@/context/CurrencyContext";
 
 const statusColors: Record<string, string> = {
@@ -197,6 +197,7 @@ const DashboardHome = () => {
   const { data: orders, isLoading: ordersLoading, isError: ordersError, refetch: refetchOrders } = useQuery({ queryKey: ['orders-recent'], queryFn: () => fetchOrders() });
   const { data: wallet, isLoading: walletLoading } = useQuery({ queryKey: ['wallet'], queryFn: fetchWallet });
   const { data: transactions, isLoading: txLoading } = useQuery({ queryKey: ['transactions'], queryFn: fetchTransactions });
+  const { data: announcements } = useQuery({ queryKey: ['announcements'], queryFn: fetchAnnouncements, staleTime: 5 * 60 * 1000 });
 
   const isLoading = statsLoading || walletLoading || txLoading || ordersLoading;
   const isError = statsError || ordersError;
@@ -363,6 +364,23 @@ const DashboardHome = () => {
           </div>
         ))}
       </div>
+
+      {/* Announcements */}
+      {announcements && announcements.length > 0 && (
+        <div className="space-y-3">
+          {announcements.map((a) => (
+            <div key={a.id} className="glass-card p-4 sm:p-5 flex gap-4">
+              <div className="flex-shrink-0 h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
+                <Megaphone className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground">{a.title}</p>
+                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-line leading-relaxed">{a.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Quick Services */}
       <div>

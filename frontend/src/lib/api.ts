@@ -329,6 +329,17 @@ export function markNotificationsRead() {
   return request<{ detail: string }>('/notifications/read/', { method: 'POST' });
 }
 
+export interface Announcement {
+  id: number;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+export function fetchAnnouncements() {
+  return request<Announcement[]>('/announcements/');
+}
+
 // --- Dashboard ---
 
 export interface DashboardStats {
