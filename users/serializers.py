@@ -1,5 +1,11 @@
+import re
 from rest_framework import serializers
+from core.sanitizers import SanitizedCharField, sanitize_text, MAX_NAME, MAX_PHONE
 from .models import User
+
+_ALPHANUMERIC_RE = re.compile(r'^[a-zA-Z0-9_.-]+$')
+_PHONE_RE = re.compile(r'^[+\d\s\-()]{0,30}$')
+_NAME_RE = re.compile(r"^[a-zA-ZÀ-ÿ\s'\-\.]+$")
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -20,11 +26,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    username = SanitizedCharField(max_length=150)
+    first_name = SanitizedCharField(max_length=MAX_NAME)
+    last_name = SanitizedCharField(max_length=MAX_NAME)
     password = serializers.CharField(write_only=True, min_length=8)
-    referral_code = serializers.CharField(max_length=12, required=False, allow_blank=True)
+    referral_code = SanitizedCharField(max_length=12, required=False, allow_blank=True)
 
     def validate_email(self, value):
         if User.objects.filter(email=value.lower()).exists():
@@ -32,8 +38,20 @@ class RegisterSerializer(serializers.Serializer):
         return value.lower()
 
     def validate_username(self, value):
+        if not _ALPHANUMERIC_RE.match(value):
+            raise serializers.ValidationError('Username may only contain letters, numbers, dots, hyphens, and underscores.')
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError('This username is already taken.')
+        return value
+
+    def validate_first_name(self, value):
+        if value and not _NAME_RE.match(value):
+            raise serializers.ValidationError('Name contains invalid characters.')
+        return value
+
+    def validate_last_name(self, value):
+        if value and not _NAME_RE.match(value):
+            raise serializers.ValidationError('Name contains invalid characters.')
         return value
 
     def validate_referral_code(self, value):
@@ -68,9 +86,28 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
+    first_name = SanitizedCharField(max_length=MAX_NAME, required=False)
+    last_name = SanitizedCharField(max_length=MAX_NAME, required=False)
+    phone = SanitizedCharField(max_length=MAX_PHONE, required=False, allow_blank=True)
+
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'phone']
+
+    def validate_first_name(self, value):
+        if value and not _NAME_RE.match(value):
+            raise serializers.ValidationError('Name contains invalid characters.')
+        return value
+
+    def validate_last_name(self, value):
+        if value and not _NAME_RE.match(value):
+            raise serializers.ValidationError('Name contains invalid characters.')
+        return value
+
+    def validate_phone(self, value):
+        if value and not _PHONE_RE.match(value):
+            raise serializers.ValidationError('Invalid phone number format.')
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):

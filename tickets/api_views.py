@@ -15,9 +15,11 @@ def api_tickets(request):
         return Response(TicketSerializer(tickets, many=True).data)
 
     # POST — create ticket
-    subject = request.data.get('subject', '').strip()
-    message = request.data.get('message', '').strip()
-    order_number = request.data.get('order_number', '').strip()
+    from core.sanitizers import sanitize_text, MAX_SHORT_TEXT, MAX_LONG_TEXT
+
+    subject = sanitize_text(request.data.get('subject', ''), max_length=MAX_SHORT_TEXT)
+    message = sanitize_text(request.data.get('message', ''), max_length=MAX_LONG_TEXT)
+    order_number = sanitize_text(request.data.get('order_number', ''), max_length=50)
 
     if not subject or not message:
         return Response({'detail': 'Subject and message are required.'}, status=400)

@@ -39,12 +39,14 @@ def api_deposit_paystack(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    from core.sanitizers import sanitize_url
+
     reference = f"DEP-{uuid.uuid4().hex[:12].upper()}"
     # Build callback URL pointing to the React frontend
-    callback_url = request.data.get(
-        'callback_url',
-        request.build_absolute_uri('/wallet/verify/') + f'?reference={reference}'
-    )
+    default_callback = request.build_absolute_uri('/wallet/verify/') + f'?reference={reference}'
+    callback_url = sanitize_url(
+        request.data.get('callback_url', default_callback)
+    ) or default_callback
 
     result = initialize_payment(
         email=request.user.email,
@@ -107,10 +109,12 @@ def api_verify_deposit(request):
 @api_view(['POST'])
 def api_submit_crypto_deposit(request):
     """User submits a crypto deposit claim — creates a pending CryptoDeposit."""
+    from core.sanitizers import sanitize_text, MAX_HASH, MAX_SHORT_TEXT
+
     amount_ngn = request.data.get('amount_ngn')
     amount_usd = request.data.get('amount_usd')
-    transaction_hash = (request.data.get('transaction_hash') or '').strip()
-    crypto_name = (request.data.get('crypto_name') or '').strip()
+    transaction_hash = sanitize_text(request.data.get('transaction_hash') or '', max_length=MAX_HASH)
+    crypto_name = sanitize_text(request.data.get('crypto_name') or '', max_length=MAX_SHORT_TEXT)
 
     if not amount_ngn or not transaction_hash or not crypto_name:
         return Response(

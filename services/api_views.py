@@ -102,8 +102,12 @@ def api_accounts_list(request):
 @permission_classes([IsAuthenticated])
 def api_place_account_order(request):
     """Purchase a social media account."""
+    from core.sanitizers import sanitize_dict
+
     account_id = request.data.get('account_id')
     user_details = request.data.get('user_details', {})
+    if isinstance(user_details, dict):
+        user_details = sanitize_dict(user_details)
 
     if not account_id:
         return Response({'detail': 'account_id is required.'}, status=400)

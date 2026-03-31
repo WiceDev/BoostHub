@@ -17,14 +17,16 @@ def api_orders(request):
 @api_view(['POST'])
 def api_place_gift_order(request):
     """Place a gift order — deducts from wallet and creates an order."""
+    from core.sanitizers import sanitize_text, MAX_SHORT_TEXT, MAX_MEDIUM_TEXT, MAX_PHONE
+
     data = request.data
-    gift_name = data.get('gift_name', '')
+    gift_name = sanitize_text(data.get('gift_name', ''), max_length=MAX_SHORT_TEXT)
     gift_id = data.get('gift_id')
     amount = data.get('amount')
-    recipient_name = data.get('recipient_name', '')
-    recipient_phone = data.get('recipient_phone', '')
-    delivery_address = data.get('delivery_address', '')
-    sender_name = data.get('sender_name', '')
+    recipient_name = sanitize_text(data.get('recipient_name', ''), max_length=MAX_SHORT_TEXT)
+    recipient_phone = sanitize_text(data.get('recipient_phone', ''), max_length=MAX_PHONE)
+    delivery_address = sanitize_text(data.get('delivery_address', ''), max_length=MAX_MEDIUM_TEXT)
+    sender_name = sanitize_text(data.get('sender_name', ''), max_length=MAX_SHORT_TEXT)
 
     if not gift_name or not amount:
         return Response({'detail': 'Gift name and amount are required.'}, status=400)

@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'core.middleware.RateLimitMiddleware',  # after auth so user-keyed limits work
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.RequestSanitizationMiddleware',
     'core.middleware.SecurityHeadersMiddleware',
 ]
 ROOT_URLCONF = 'core.urls'

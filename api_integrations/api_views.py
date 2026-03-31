@@ -94,8 +94,10 @@ def api_boosting_services(request):
 @api_view(['POST'])
 def api_boosting_order(request):
     """Place a boosting order — deducts wallet and calls RSS API."""
+    from core.sanitizers import sanitize_url, MAX_URL
+
     service_id = request.data.get('service_id')
-    link = request.data.get('link', '').strip()
+    link = sanitize_url(request.data.get('link', ''), max_length=MAX_URL)
     quantity = request.data.get('quantity')
 
     if not service_id or not link or not quantity:

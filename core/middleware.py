@@ -134,6 +134,36 @@ class IPBanMiddleware:
         return result
 
 
+class RequestSanitizationMiddleware:
+    """Sanitize all string values in JSON request bodies to strip HTML/script injection.
+
+    Runs early in the middleware stack on POST/PUT/PATCH requests with JSON bodies.
+    Modifies request.data (via DRF) by overriding the request body.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if (
+            request.method in ('POST', 'PUT', 'PATCH')
+            and request.content_type
+            and 'json' in request.content_type
+        ):
+            try:
+                import json
+                from core.sanitizers import sanitize_dict
+                body = request.body
+                if body:
+                    data = json.loads(body)
+                    if isinstance(data, dict):
+                        cleaned = sanitize_dict(data)
+                        request._body = json.dumps(cleaned).encode('utf-8')
+            except (json.JSONDecodeError, Exception):
+                pass  # Let DRF handle malformed JSON
+        return self.get_response(request)
+
+
 class SecurityHeadersMiddleware:
     """Add Content-Security-Policy and Permissions-Policy headers.
 
