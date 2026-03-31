@@ -149,7 +149,7 @@ const ProfilePage = () => {
     setSavingPassword(true);
     try {
       await changePassword(currentPassword, newPassword);
-      toast.success("Password updated! Please log in again.");
+      sessionStorage.setItem("password_changed", "true");
       try { await apiLogout(); } catch {}
       handleLogout();
     } catch (err) {

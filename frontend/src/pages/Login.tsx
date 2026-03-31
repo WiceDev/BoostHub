@@ -20,6 +20,16 @@ const Login = () => {
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
+  // Show password-changed banner if redirected from profile
+  useEffect(() => {
+    if (sessionStorage.getItem("password_changed") === "true") {
+      sessionStorage.removeItem("password_changed");
+      toast.success("Password updated! Please log in with your new password.", {
+        duration: 6000,
+      });
+    }
+  }, []);
+
   // Load reCAPTCHA v3 script
   useEffect(() => {
     if (!RECAPTCHA_SITE_KEY) return;
