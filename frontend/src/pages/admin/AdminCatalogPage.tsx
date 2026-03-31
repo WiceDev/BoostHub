@@ -43,11 +43,39 @@ function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: (
 
 // ── Boosting tab ──────────────────────────────────────────────────────────
 
+function FilterDropdown({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-sm text-foreground min-w-[140px] justify-between"
+      >
+        <span className="truncate">{value}</span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg overflow-auto max-h-52">
+          {options.map(opt => (
+            <button
+              key={opt}
+              onMouseDown={e => { e.preventDefault(); onChange(opt); setOpen(false); }}
+              className={cn("w-full text-left px-3 py-2 text-sm hover:bg-muted/50", value === opt && "bg-primary/10 text-primary")}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BoostingTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [platform, setPlatform] = useState("All");
-  const [platformOpen, setPlatformOpen] = useState(false);
+  const [category, setCategory] = useState("All");
   const [toggling, setToggling] = useState<Set<number>>(new Set());
 
   const { data: services = [], isLoading, refetch, isFetching } = useQuery({
@@ -59,63 +87,56 @@ function BoostingTab() {
     mutationFn: ({ id, is_active }: { id: number; is_active: boolean }) =>
       toggleCatalogBoostingService(id, is_active),
     onMutate: ({ id }) => setToggling(prev => new Set(prev).add(id)),
-    onSuccess: (data, { is_active }) => {
+    onSuccess: (data) => {
       queryClient.setQueryData<CatalogBoostingService[]>(["admin-catalog-boosting"], (old = []) =>
         old.map(s => s.id === data.id ? { ...s, is_active: data.is_active } : s)
       );
     },
-    onError: (_, { id }) => toast.error("Failed to update service."),
+    onError: () => toast.error("Failed to update service."),
     onSettled: (_, __, { id }) => setToggling(prev => { const n = new Set(prev); n.delete(id); return n; }),
   });
 
-  const filtered = useMemo(() => {
-    let list = services;
-    if (platform !== "All") list = list.filter(s => s.platform === platform);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(s => s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q));
-    }
-    return list;
-  }, [services, platform, search]);
-
-  const activeCount = services.filter(s => s.is_active).length;
+  // Available platforms (from data)
   const platforms = useMemo(() => {
     const set = new Set(services.map(s => s.platform));
     return ["All", ...PLATFORMS.filter(p => p !== "All" && set.has(p))];
   }, [services]);
 
+  // Available categories — filtered by selected platform
+  const categories = useMemo(() => {
+    const base = platform === "All" ? services : services.filter(s => s.platform === platform);
+    const set = new Set(base.map(s => s.category).filter(Boolean));
+    return ["All", ...[...set].sort()];
+  }, [services, platform]);
+
+  // Reset category when platform changes and current category isn't available
+  const handlePlatformChange = (p: string) => {
+    setPlatform(p);
+    setCategory("All");
+  };
+
+  const filtered = useMemo(() => {
+    let list = services;
+    if (platform !== "All") list = list.filter(s => s.platform === platform);
+    if (category !== "All") list = list.filter(s => s.category === category);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(s => s.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [services, platform, category, search]);
+
+  const activeCount = services.filter(s => s.is_active).length;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search services…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <div className="relative">
-          <button
-            onClick={() => setPlatformOpen(o => !o)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-sm text-foreground min-w-[140px] justify-between"
-          >
-            <span>{platform}</span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </button>
-          {platformOpen && (
-            <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg overflow-auto max-h-52">
-              {platforms.map(p => (
-                <button
-                  key={p}
-                  onMouseDown={e => { e.preventDefault(); setPlatform(p); setPlatformOpen(false); }}
-                  className={cn(
-                    "w-full text-left px-3 py-2 text-sm hover:bg-muted/50",
-                    platform === p && "bg-primary/10 text-primary"
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <FilterDropdown value={platform} options={platforms} onChange={handlePlatformChange} />
+        <FilterDropdown value={category} options={categories} onChange={setCategory} />
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={cn("h-4 w-4 mr-1", isFetching && "animate-spin")} /> Refresh
         </Button>
