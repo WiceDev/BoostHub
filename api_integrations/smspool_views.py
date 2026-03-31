@@ -149,7 +149,7 @@ def api_numbers_price(request):
         return Response({'detail': 'country and service are required.'}, status=400)
 
     try:
-        client = SMSPoolClient()
+        client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
         result = client.get_price(country, service)
     except SMSPoolAPIError as e:
         return Response({'detail': str(e)}, status=502)
@@ -180,7 +180,7 @@ def api_numbers_order(request):
 
     # Get live price
     try:
-        client = SMSPoolClient()
+        client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
         price_result = client.get_price(country, service)
     except SMSPoolAPIError as e:
         return Response({'detail': str(e)}, status=502)
@@ -261,7 +261,7 @@ def api_numbers_order_status(request, order_id):
 
     # Check live status from SMSPool
     try:
-        client = SMSPoolClient()
+        client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
         sms_status = client.check_sms(order.external_order_id)
     except SMSPoolAPIError:
         data = OrderSerializer(order).data
@@ -299,7 +299,7 @@ def api_numbers_cancel(request, order_id):
 
     if order.external_order_id:
         try:
-            client = SMSPoolClient()
+            client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
             client.cancel_sms(order.external_order_id)
         except SMSPoolAPIError as e:
             return Response({'detail': f'Could not cancel: {str(e)}'}, status=400)

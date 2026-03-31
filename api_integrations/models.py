@@ -1,6 +1,40 @@
 from django.db import models
 
 
+class APICallLog(models.Model):
+    """Records every outbound call to external APIs (RSS, SMSPool, Paystack, etc.)."""
+    PROVIDER_CHOICES = [
+        ('rss', 'RSS SMM Panel'),
+        ('smspool', 'SMSPool'),
+        ('paystack', 'Paystack'),
+        ('other', 'Other'),
+    ]
+
+    provider = models.CharField(max_length=30, choices=PROVIDER_CHOICES, db_index=True)
+    action = models.CharField(max_length=100, help_text='e.g. get_services, place_order, check_status')
+    endpoint = models.CharField(max_length=500, blank=True)
+    request_data = models.JSONField(default=dict, blank=True, help_text='Request payload (API keys stripped)')
+    response_data = models.JSONField(default=dict, blank=True, null=True)
+    http_status = models.IntegerField(null=True, blank=True)
+    success = models.BooleanField(default=True, db_index=True)
+    error_message = models.TextField(blank=True)
+    duration_ms = models.IntegerField(null=True, blank=True, help_text='Round-trip time in milliseconds')
+    triggered_by = models.CharField(
+        max_length=100, blank=True,
+        help_text='e.g. celery:sync_boosting_services, user:42, admin:sync'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'API Call Log'
+        verbose_name_plural = 'API Call Logs'
+
+    def __str__(self):
+        status = 'OK' if self.success else 'FAIL'
+        return f"[{self.provider.upper()}] {self.action} — {status} ({self.created_at:%Y-%m-%d %H:%M})"
+
+
 class BoostingServiceSnapshot(models.Model):
     """Boosting services synced from RSS SMM panel. Admin controls which are visible to users."""
     external_id = models.IntegerField(unique=True, db_index=True)

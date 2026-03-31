@@ -1544,3 +1544,89 @@ def admin_catalog_sync(request):
             results['sms'] = f'Error: {e}'
 
     return Response(results)
+
+
+# ---------------------------------------------------------------------------
+# API Call Logs
+# ---------------------------------------------------------------------------
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_api_logs(request):
+    from api_integrations.models import APICallLog
+
+    if request.method == 'DELETE':
+        # Clear all logs (or filtered by provider)
+        provider = request.query_params.get('provider')
+        qs = APICallLog.objects.all()
+        if provider:
+            qs = qs.filter(provider=provider)
+        count, _ = qs.delete()
+        return Response({'detail': f'Deleted {count} log entries.'})
+
+    # GET — paginated list with filters
+    qs = APICallLog.objects.all()
+
+    provider = request.query_params.get('provider')
+    if provider:
+        qs = qs.filter(provider=provider)
+
+    success_filter = request.query_params.get('success')
+    if success_filter == 'true':
+        qs = qs.filter(success=True)
+    elif success_filter == 'false':
+        qs = qs.filter(success=False)
+
+    action = request.query_params.get('action')
+    if action:
+        qs = qs.filter(action__icontains=action)
+
+    triggered_by = request.query_params.get('triggered_by')
+    if triggered_by:
+        qs = qs.filter(triggered_by__icontains=triggered_by)
+
+    # Summary stats
+    total = APICallLog.objects.count()
+    total_success = APICallLog.objects.filter(success=True).count()
+    total_fail = APICallLog.objects.filter(success=False).count()
+
+    # Pagination
+    try:
+        page = max(1, int(request.query_params.get('page', 1)))
+        page_size = min(100, max(10, int(request.query_params.get('page_size', 50))))
+    except (ValueError, TypeError):
+        page = 1
+        page_size = 50
+
+    total_filtered = qs.count()
+    offset = (page - 1) * page_size
+    logs = qs[offset:offset + page_size]
+
+    data = []
+    for log in logs:
+        data.append({
+            'id': log.id,
+            'provider': log.provider,
+            'action': log.action,
+            'endpoint': log.endpoint,
+            'request_data': log.request_data,
+            'response_data': log.response_data,
+            'http_status': log.http_status,
+            'success': log.success,
+            'error_message': log.error_message,
+            'duration_ms': log.duration_ms,
+            'triggered_by': log.triggered_by,
+            'created_at': log.created_at.isoformat(),
+        })
+
+    return Response({
+        'summary': {
+            'total': total,
+            'success': total_success,
+            'failed': total_fail,
+        },
+        'total': total_filtered,
+        'page': page,
+        'page_size': page_size,
+        'results': data,
+    })

@@ -1050,3 +1050,50 @@ export function bulkToggleCatalogSMSServices(ids: number[], is_active: boolean) 
     body: JSON.stringify({ ids, is_active }),
   });
 }
+
+// --- API Call Logs ---
+export interface APICallLog {
+  id: number;
+  provider: string;
+  action: string;
+  endpoint: string;
+  request_data: Record<string, unknown>;
+  response_data: Record<string, unknown> | null;
+  http_status: number | null;
+  success: boolean;
+  error_message: string;
+  duration_ms: number | null;
+  triggered_by: string;
+  created_at: string;
+}
+
+export interface APILogsResponse {
+  summary: { total: number; success: number; failed: number };
+  total: number;
+  page: number;
+  page_size: number;
+  results: APICallLog[];
+}
+
+export function fetchAPILogs(params: {
+  provider?: string;
+  success?: boolean;
+  action?: string;
+  triggered_by?: string;
+  page?: number;
+  page_size?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (params.provider) qs.set('provider', params.provider);
+  if (params.success !== undefined) qs.set('success', params.success ? 'true' : 'false');
+  if (params.action) qs.set('action', params.action);
+  if (params.triggered_by) qs.set('triggered_by', params.triggered_by);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.page_size) qs.set('page_size', String(params.page_size));
+  return request<APILogsResponse>(`/admin/api-logs/?${qs.toString()}`);
+}
+
+export function clearAPILogs(provider?: string) {
+  const qs = provider ? `?provider=${provider}` : '';
+  return request<{ detail: string }>(`/admin/api-logs/${qs}`, { method: 'DELETE' });
+}

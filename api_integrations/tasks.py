@@ -36,7 +36,7 @@ def check_boosting_orders():
         return 'No pending boosting orders.'
 
     try:
-        client = RSSClient()
+        client = RSSClient(triggered_by='celery:check_boosting_orders')
     except RSSAPIError as e:
         logger.error(f'RSS client init failed: {e}')
         return f'RSS client error: {e}'
@@ -87,7 +87,7 @@ def check_sms_orders():
         return 'No pending SMS orders.'
 
     try:
-        client = SMSPoolClient()
+        client = SMSPoolClient(triggered_by='celery:check_sms_orders')
     except SMSPoolAPIError as e:
         logger.error(f'SMSPool client init failed: {e}')
         return f'SMSPool client error: {e}'
@@ -163,7 +163,7 @@ def sync_boosting_services():
     from .models import BoostingServiceSnapshot
 
     try:
-        client = RSSClient()
+        client = RSSClient(triggered_by='celery:sync_boosting_services')
         raw_services = client.get_services()
     except RSSAPIError as e:
         logger.error(f'RSS sync failed — could not fetch services: {e}')
@@ -245,7 +245,7 @@ def sync_sms_services():
     from api_integrations.smspool_views import DIAL_CODES
 
     try:
-        client = SMSPoolClient()
+        client = SMSPoolClient(triggered_by='celery:sync_sms_services')
     except SMSPoolAPIError as e:
         logger.error(f'SMSPool sync failed — client init error: {e}')
         return f'Error: {e}'

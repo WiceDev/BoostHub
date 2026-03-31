@@ -5,7 +5,7 @@ import {
   Bell, ChevronDown, ChevronRight, Menu, Zap, CreditCard, Package, RotateCcw, Info,
   Settings, ShieldCheck, ShieldAlert, Sun, Moon, Search,
   TrendingUp, Phone, UserCheck, Gift, Globe, Wallet, ArrowLeftRight, X,
-  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database
+  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { logout as apiLogout, fetchWallet, fetchNotifications, markNotificationsRead, type NotificationsResponse } from "@/lib/api";
@@ -247,6 +247,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <NavLink to="/admin/gifts" icon={Gift} label="Manage Gifts" />
             <NavLink to="/admin/services" icon={Zap} label="Manage Services" />
             <NavLink to="/admin/catalog" icon={Database} label="Service Catalog" />
+            <NavLink to="/admin/api-logs" icon={Activity} label="API Logs" />
             <NavLink to="/admin/accounts" icon={AtSign} label="Social Accounts" />
             <NavLink to="/admin/webdev" icon={Globe} label="Web Dev Portfolio" />
             <NavLink to="/admin/orders" icon={Package} label="Manage Orders" />

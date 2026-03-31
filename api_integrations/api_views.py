@@ -154,7 +154,7 @@ def api_boosting_order(request):
 
     # Place order on RSS API
     try:
-        client = RSSClient()
+        client = RSSClient(triggered_by=f'user:{request.user.id}')
         rss_result = client.place_order(service['id'], link, quantity)
         order.external_order_id = str(rss_result.get('order', ''))
         order.status = 'processing'
@@ -185,7 +185,7 @@ def api_boosting_order_status(request, order_id):
         return Response(OrderSerializer(order).data)
 
     try:
-        client = RSSClient()
+        client = RSSClient(triggered_by=f'user:{request.user.id}')
         rss_status = client.check_status(int(order.external_order_id))
     except RSSAPIError:
         # Can't reach RSS — return what we have
