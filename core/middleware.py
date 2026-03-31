@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import JsonResponse
 from django.core.cache import cache
 import re
@@ -131,3 +132,55 @@ class IPBanMiddleware:
             result = False
         cache.set(cache_key, result, self.CACHE_TTL)
         return result
+
+
+class SecurityHeadersMiddleware:
+    """Add Content-Security-Policy and Permissions-Policy headers.
+
+    In DEBUG mode, CSP is set to report-only so Vite HMR and dev tools
+    are not blocked. In production, it is fully enforced.
+    """
+
+    # CSP directives — external services: Paystack, Google reCAPTCHA
+    CSP_DIRECTIVES = {
+        "default-src": "'self'",
+        "script-src": "'self' https://js.paystack.co https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob: https:",
+        "font-src": "'self' data:",
+        "connect-src": "'self' https://api.paystack.co https://www.google.com",
+        "frame-src": "https://js.paystack.co https://www.google.com/recaptcha/",
+        "frame-ancestors": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'self'",
+        "object-src": "'none'",
+    }
+
+    PERMISSIONS_POLICY = (
+        "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), "
+        "display-capture=(), encrypted-media=(), fullscreen=(self), geolocation=(), "
+        "gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), "
+        "payment=(self), picture-in-picture=(), publickey-credentials-get=(), "
+        "screen-wake-lock=(), sync-xhr=(), usb=(), xr-spatial-tracking=()"
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self._csp_value = "; ".join(
+            f"{key} {value}" for key, value in self.CSP_DIRECTIVES.items()
+        )
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # CSP — enforced in production, report-only in dev
+        if settings.DEBUG:
+            response["Content-Security-Policy-Report-Only"] = self._csp_value
+        else:
+            response["Content-Security-Policy"] = self._csp_value
+
+        response["Permissions-Policy"] = self.PERMISSIONS_POLICY
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        return response

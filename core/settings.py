@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'core.middleware.RateLimitMiddleware',  # after auth so user-keyed limits work
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.SecurityHeadersMiddleware',
 ]
 ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
@@ -193,3 +194,16 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 # Session settings
 SESSION_COOKIE_AGE = 7 * 24 * 60 * 60          # 1 week
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False         # persist across browser restarts
+
+# ── Security headers (enforced in production only) ────────────────────────────
+if not DEBUG:
+    # HSTS — tell browsers to only use HTTPS for 1 year, include subdomains
+    SECURE_HSTS_SECONDS = 31536000               # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Force HTTPS redirect + secure cookies
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
