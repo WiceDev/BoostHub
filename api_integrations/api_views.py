@@ -33,7 +33,7 @@ def detect_category(name: str) -> str:
     return 'Other'
 
 
-CACHE_KEY = 'rss_services_list'
+CACHE_KEY = 'rss_services_db_v1'  # versioned key — avoids stale pre-DB cache
 CACHE_TIMEOUT = 900  # 15 minutes
 
 

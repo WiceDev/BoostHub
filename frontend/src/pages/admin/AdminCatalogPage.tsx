@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
-import { Database, Search, RefreshCw, Loader2, ChevronDown } from "lucide-react";
+import { Database, Search, RefreshCw, Loader2, ChevronDown, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchCatalogBoostingServices, toggleCatalogBoostingService,
   fetchCatalogSMSCountries, toggleCatalogSMSCountry,
   fetchCatalogSMSServices, toggleCatalogSMSService,
+  syncCatalog,
   type CatalogBoostingService, type CatalogSMSCountry, type CatalogSMSService,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -363,18 +363,42 @@ const TABS: { id: Tab; label: string; desc: string }[] = [
 ];
 
 const AdminCatalogPage = () => {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("boosting");
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const result = await syncCatalog('all');
+      queryClient.invalidateQueries({ queryKey: ["admin-catalog-boosting"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-catalog-sms-countries"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-catalog-sms-services"] });
+      const parts = Object.values(result).join(' · ');
+      toast.success(`Sync complete — ${parts}`);
+    } catch {
+      toast.error("Sync failed. Check API credentials in Settings.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Database className="h-5 w-5 text-primary" />
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Database className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Service Catalog</h1>
+            <p className="text-sm text-muted-foreground">Toggle which services are visible to users. Sync pulls fresh data from the APIs.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Service Catalog</h1>
-          <p className="text-sm text-muted-foreground">Toggle which services are visible to users. Data synced automatically via Celery.</p>
-        </div>
+        <Button onClick={handleSync} disabled={syncing} className="flex-shrink-0">
+          <RotateCcw className={cn("h-4 w-4 mr-2", syncing && "animate-spin")} />
+          {syncing ? "Syncing…" : "Sync Now"}
+        </Button>
       </div>
 
       {/* Tabs */}

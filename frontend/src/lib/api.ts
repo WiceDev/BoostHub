@@ -1022,3 +1022,10 @@ export function toggleCatalogSMSService(id: number, is_active: boolean) {
     body: JSON.stringify({ is_active }),
   });
 }
+
+export function syncCatalog(target: 'boosting' | 'sms' | 'all') {
+  return request<Record<string, string>>('/admin/catalog/sync/', {
+    method: 'POST',
+    body: JSON.stringify({ target }),
+  });
+}

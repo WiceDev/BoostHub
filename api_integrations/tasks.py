@@ -231,7 +231,7 @@ def sync_boosting_services():
 
     # Invalidate the cached service list so users get fresh data next request
     from django.core.cache import cache
-    cache.delete('rss_services_list')
+    cache.delete('rss_services_db_v1')
 
     msg = f'Boosting sync: {created} new, {updated} updated, {unchanged} unchanged.'
     logger.info(msg)

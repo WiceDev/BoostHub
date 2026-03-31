@@ -45,6 +45,7 @@ from core.admin_api_views import (
     admin_catalog_boosting, admin_catalog_boosting_detail,
     admin_catalog_sms_countries, admin_catalog_sms_country_detail,
     admin_catalog_sms_services, admin_catalog_sms_service_detail,
+    admin_catalog_sync,
 )
 
 
@@ -170,4 +171,5 @@ urlpatterns = [
     path('admin/catalog/sms-countries/<int:country_id>/', admin_catalog_sms_country_detail, name='admin_catalog_sms_country_detail'),
     path('admin/catalog/sms-services/', admin_catalog_sms_services, name='admin_catalog_sms_services'),
     path('admin/catalog/sms-services/<int:sms_service_id>/', admin_catalog_sms_service_detail, name='admin_catalog_sms_service_detail'),
+    path('admin/catalog/sync/', admin_catalog_sync, name='admin_catalog_sync'),
 ]

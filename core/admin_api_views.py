@@ -820,7 +820,7 @@ def admin_platform_settings(request):
 
     # Clear caches
     from django.core.cache import cache
-    cache.delete('rss_services_list')
+    cache.delete('rss_services_db_v1')
     for attr in cleared_key_caches:
         PlatformSettings.clear_api_key_cache(attr)
 
@@ -1348,7 +1348,7 @@ def admin_catalog_boosting_detail(request, service_id):
     if 'is_active' in request.data:
         svc.is_active = bool(request.data['is_active'])
         svc.save(update_fields=['is_active'])
-        cache.delete('rss_services_list')
+        cache.delete('rss_services_db_v1')
 
     return Response({'id': svc.id, 'is_active': svc.is_active})
 
@@ -1432,3 +1432,37 @@ def admin_catalog_sms_service_detail(request, sms_service_id):
         cache.delete('smspool_services')
 
     return Response({'id': obj.id, 'is_active': obj.is_active})
+
+
+# ---------------------------------------------------------------------------
+# Service Catalog — Manual Sync (runs sync tasks inline, no Celery required)
+# ---------------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sync(request):
+    """Manually trigger service catalog sync from external APIs.
+    Runs synchronously so Celery is not required for an initial sync.
+    """
+    target = request.data.get('target', 'all')  # 'boosting', 'sms', or 'all'
+    results = {}
+
+    if target in ('boosting', 'all'):
+        try:
+            from api_integrations.tasks import sync_boosting_services
+            result = sync_boosting_services()
+            results['boosting'] = result
+        except Exception as e:
+            logger.error(f'Manual boosting sync failed: {e}')
+            results['boosting'] = f'Error: {e}'
+
+    if target in ('sms', 'all'):
+        try:
+            from api_integrations.tasks import sync_sms_services
+            result = sync_sms_services()
+            results['sms'] = result
+        except Exception as e:
+            logger.error(f'Manual SMS sync failed: {e}')
+            results['sms'] = f'Error: {e}'
+
+    return Response(results)
