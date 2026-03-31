@@ -38,43 +38,35 @@ CACHE_TIMEOUT = 900  # 15 minutes
 
 
 def _get_services_cached():
-    """Fetch RSS services with caching. RSS rates are in NGN per 1K.
-    Applies admin-configurable markup and converts to USD."""
+    """Serve active boosting services from DB snapshot. Apply markup at serve time."""
     cached = cache.get(CACHE_KEY)
     if cached:
         return cached
 
-    client = RSSClient()
-    raw = client.get_services()
-    ngn_to_usd = Decimal('1') / Decimal(str(settings.RSS_USD_TO_NGN))
+    from .models import BoostingServiceSnapshot
 
-    # Get admin-configured markup
+    ngn_to_usd = Decimal('1') / Decimal(str(settings.RSS_USD_TO_NGN))
     platform_settings = PlatformSettings.load()
     markup_multiplier = Decimal('1') + (platform_settings.boosting_markup_percent / Decimal('100'))
 
     services = []
-    for svc in raw:
-        cost_ngn = Decimal(str(svc['rate']))
-        # Apply markup: cost + markup%
-        rate_ngn = (cost_ngn * markup_multiplier).quantize(
-            Decimal('0.01'), rounding=ROUND_UP
-        )
-        rate_usd = (rate_ngn * ngn_to_usd).quantize(
-            Decimal('0.01'), rounding=ROUND_UP
-        )
+    for svc in BoostingServiceSnapshot.objects.filter(is_active=True):
+        cost_ngn = svc.cost_per_k_ngn
+        rate_ngn = (cost_ngn * markup_multiplier).quantize(Decimal('0.01'), rounding=ROUND_UP)
+        rate_usd = (rate_ngn * ngn_to_usd).quantize(Decimal('0.01'), rounding=ROUND_UP)
         services.append({
-            'id': int(svc['service']),
-            'name': svc['name'],
-            'type': svc.get('type', ''),
-            'category': detect_category(svc['name']),
+            'id': svc.external_id,
+            'name': svc.name,
+            'type': svc.service_type,
+            'category': svc.category,
             'rate_per_k_ngn': str(rate_ngn),
             'rate_per_k_usd': str(rate_usd),
-            'cost_per_k_ngn': str(cost_ngn),  # raw cost without markup (for order processing)
-            'min': int(svc['min']),
-            'max': int(svc['max']),
-            'platform': detect_platform(svc['name']),
-            'refill': svc.get('refill', False),
-            'cancel': svc.get('cancel', False),
+            'cost_per_k_ngn': str(cost_ngn),
+            'min': svc.min_quantity,
+            'max': svc.max_quantity,
+            'platform': svc.platform,
+            'refill': svc.refill,
+            'cancel': svc.cancel,
         })
 
     cache.set(CACHE_KEY, services, CACHE_TIMEOUT)
@@ -83,12 +75,9 @@ def _get_services_cached():
 
 @api_view(['GET'])
 def api_boosting_services(request):
-    """List all available boosting services from the RSS panel."""
-    try:
-        services = _get_services_cached()
-        return Response(services)
-    except RSSAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+    """List all active boosting services from the DB snapshot."""
+    services = _get_services_cached()
+    return Response(services)
 
 
 @api_view(['POST'])

@@ -73,19 +73,18 @@ def _get_countries_cached():
     cached = cache.get(COUNTRIES_CACHE_KEY)
     if cached:
         return cached
-    client = SMSPoolClient()
-    raw = client.get_countries()
-    countries = []
-    for c in raw:
-        short_name = c.get('short_name', '')
-        dial_code = DIAL_CODES.get(short_name.upper(), '')
-        countries.append({
-            'id': str(c.get('ID', c.get('id', ''))),
-            'name': c.get('name', ''),
-            'short_name': short_name,
-            'dial_code': dial_code,
-        })
-    countries.sort(key=lambda x: x['name'])
+
+    from .models import SMSCountrySnapshot
+
+    countries = [
+        {
+            'id': c.external_id,
+            'name': c.name,
+            'short_name': c.short_name,
+            'dial_code': c.dial_code,
+        }
+        for c in SMSCountrySnapshot.objects.filter(is_active=True).order_by('name')
+    ]
     cache.set(COUNTRIES_CACHE_KEY, countries, CACHE_TIMEOUT)
     return countries
 
@@ -94,16 +93,17 @@ def _get_services_cached():
     cached = cache.get(SERVICES_CACHE_KEY)
     if cached:
         return cached
-    client = SMSPoolClient()
-    raw = client.get_services()
-    services = []
-    for s in raw:
-        services.append({
-            'id': str(s.get('ID', s.get('id', ''))),
-            'name': s.get('name', ''),
-            'short_name': s.get('short_name', ''),
-        })
-    services.sort(key=lambda x: x['name'])
+
+    from .models import SMSServiceSnapshot
+
+    services = [
+        {
+            'id': s.external_id,
+            'name': s.name,
+            'short_name': s.short_name,
+        }
+        for s in SMSServiceSnapshot.objects.filter(is_active=True).order_by('name')
+    ]
     cache.set(SERVICES_CACHE_KEY, services, CACHE_TIMEOUT)
     return services
 

@@ -42,6 +42,7 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import TicketsPage from "./pages/dashboard/TicketsPage";
 import UpdatesPage from "./pages/dashboard/UpdatesPage";
 import AdminTicketsPage from "./pages/admin/AdminTicketsPage";
+import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,7 @@ const App = () => (
             <Route path="/admin/analytics" element={<AdminRoute><DashboardLayout><AdminAnalyticsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/settings" element={<AdminRoute><DashboardLayout><AdminSettingsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/tickets" element={<AdminRoute><DashboardLayout><AdminTicketsPage /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin/catalog" element={<AdminRoute><DashboardLayout><AdminCatalogPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><DashboardLayout><ProfilePage /></DashboardLayout></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

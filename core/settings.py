@@ -125,13 +125,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'check_sms_orders',
         'schedule': 60,  # every minute (SMS is time-sensitive)
     },
-    'warm-rss-cache': {
-        'task': 'warm_rss_cache',
-        'schedule': 600,  # every 10 minutes (before 15-min cache expires)
+    'sync-boosting-services': {
+        'task': 'sync_boosting_services',
+        'schedule': 600,  # every 10 minutes
     },
-    'warm-smspool-cache': {
-        'task': 'warm_smspool_cache',
-        'schedule': 3000,  # every 50 minutes (before 1-hour cache expires)
+    'sync-sms-services': {
+        'task': 'sync_sms_services',
+        'schedule': 3000,  # every 50 minutes
     },
 }
 # Email — uses SMTP if configured, otherwise falls back to console

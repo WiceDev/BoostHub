@@ -1,7 +1,8 @@
 """
-Celery tasks for checking boosting order status from the RSS panel.
+Celery tasks: check live order statuses + sync services catalog from external APIs.
 """
 import logging
+from decimal import Decimal
 from celery import shared_task
 from django.utils import timezone
 from orders.models import Order
@@ -19,6 +20,8 @@ STATUS_MAP = {
     'Canceled': 'failed',
 }
 
+
+# ── Order status checkers ─────────────────────────────────────────────────────
 
 @shared_task(name='check_boosting_orders')
 def check_boosting_orders():
@@ -95,7 +98,6 @@ def check_sms_orders():
 
     for order in orders:
         try:
-            # Auto-cancel orders older than 20 minutes
             age_minutes = (now - order.created_at).total_seconds() / 60
             if age_minutes > 20:
                 try:
@@ -114,7 +116,6 @@ def check_sms_orders():
             if status_code == '3':
                 order.mark_failed(notes='SMS order expired or cancelled by provider.')
                 updated += 1
-                logger.info(f'SMS order #{order.id} expired/cancelled.')
             elif sms_code:
                 order.external_data = order.external_data or {}
                 order.external_data['sms_code'] = sms_code
@@ -133,34 +134,193 @@ def check_sms_orders():
     return f'Checked {orders.count()} SMS orders. Updated: {updated}, Errors: {errors}'
 
 
-@shared_task(name='warm_rss_cache')
-def warm_rss_cache():
-    """Pre-warm the RSS services cache before it expires."""
-    from .api_views import _get_services_cached
+# ── Service catalog sync ───────────────────────────────────────────────────────
+
+def _detect_platform(name: str) -> str:
+    lower = name.lower()
+    for platform in ['Instagram', 'TikTok', 'Twitter', 'YouTube', 'Facebook',
+                     'Telegram', 'Spotify', 'LinkedIn', 'Threads', 'Snapchat',
+                     'Discord', 'Twitch', 'SoundCloud', 'Pinterest', 'Reddit']:
+        if platform.lower() in lower:
+            return platform
+    return 'Other'
+
+
+def _detect_category(name: str) -> str:
+    lower = name.lower()
+    for cat in ['followers', 'likes', 'views', 'subscribers', 'comments',
+                'shares', 'reactions', 'retweets', 'saves', 'impressions',
+                'plays', 'members', 'reach']:
+        if cat in lower:
+            return cat.capitalize()
+    return 'Other'
+
+
+@shared_task(name='sync_boosting_services')
+def sync_boosting_services():
+    """Fetch RSS services, sync new/changed ones to DB. Preserves admin is_active toggle."""
+    from django.conf import settings as django_settings
+    from .models import BoostingServiceSnapshot
+
+    try:
+        client = RSSClient()
+        raw_services = client.get_services()
+    except RSSAPIError as e:
+        logger.error(f'RSS sync failed — could not fetch services: {e}')
+        return f'Error: {e}'
+
+    created = updated = unchanged = 0
+
+    for svc in raw_services:
+        external_id = int(svc['service'])
+        cost_ngn = Decimal(str(svc['rate']))
+        name = svc.get('name', '')
+        service_type = svc.get('type', '')
+        platform = _detect_platform(name)
+        category = _detect_category(name)
+        min_qty = int(svc.get('min', 10))
+        max_qty = int(svc.get('max', 10000))
+        refill = bool(svc.get('refill', False))
+        cancel = bool(svc.get('cancel', False))
+
+        try:
+            obj = BoostingServiceSnapshot.objects.get(external_id=external_id)
+            # Compare fields — only update if something actually changed
+            changed = (
+                obj.name != name
+                or obj.service_type != service_type
+                or obj.platform != platform
+                or obj.category != category
+                or obj.cost_per_k_ngn != cost_ngn
+                or obj.min_quantity != min_qty
+                or obj.max_quantity != max_qty
+                or obj.refill != refill
+                or obj.cancel != cancel
+            )
+            if changed:
+                obj.name = name
+                obj.service_type = service_type
+                obj.platform = platform
+                obj.category = category
+                obj.cost_per_k_ngn = cost_ngn
+                obj.min_quantity = min_qty
+                obj.max_quantity = max_qty
+                obj.refill = refill
+                obj.cancel = cancel
+                obj.save()
+                updated += 1
+            else:
+                # Touch last_synced even if nothing changed
+                obj.save(update_fields=['last_synced'])
+                unchanged += 1
+        except BoostingServiceSnapshot.DoesNotExist:
+            BoostingServiceSnapshot.objects.create(
+                external_id=external_id,
+                name=name,
+                service_type=service_type,
+                platform=platform,
+                category=category,
+                cost_per_k_ngn=cost_ngn,
+                min_quantity=min_qty,
+                max_quantity=max_qty,
+                refill=refill,
+                cancel=cancel,
+                is_active=True,
+            )
+            created += 1
+
+    # Invalidate the cached service list so users get fresh data next request
     from django.core.cache import cache
     cache.delete('rss_services_list')
+
+    msg = f'Boosting sync: {created} new, {updated} updated, {unchanged} unchanged.'
+    logger.info(msg)
+    return msg
+
+
+@shared_task(name='sync_sms_services')
+def sync_sms_services():
+    """Fetch SMSPool countries + services, sync to DB. Preserves admin is_active toggle."""
+    from .models import SMSCountrySnapshot, SMSServiceSnapshot
+    from api_integrations.smspool_views import DIAL_CODES
+
     try:
-        _get_services_cached()
-        return 'RSS cache warmed.'
-    except Exception as e:
-        logger.warning(f'RSS cache warm failed: {e}')
-        return f'RSS cache warm error: {e}'
+        client = SMSPoolClient()
+    except SMSPoolAPIError as e:
+        logger.error(f'SMSPool sync failed — client init error: {e}')
+        return f'Error: {e}'
 
+    # ── Countries ──
+    c_created = c_updated = c_unchanged = 0
+    try:
+        raw_countries = client.get_countries()
+        for c in raw_countries:
+            external_id = str(c.get('ID', c.get('id', '')))
+            name = c.get('name', '')
+            short_name = c.get('short_name', '')
+            dial_code = DIAL_CODES.get(short_name.upper(), '')
 
-@shared_task(name='warm_smspool_cache')
-def warm_smspool_cache():
-    """Pre-warm the SMSPool countries and services cache before it expires."""
+            try:
+                obj = SMSCountrySnapshot.objects.get(external_id=external_id)
+                if obj.name != name or obj.short_name != short_name or obj.dial_code != dial_code:
+                    obj.name = name
+                    obj.short_name = short_name
+                    obj.dial_code = dial_code
+                    obj.save()
+                    c_updated += 1
+                else:
+                    obj.save(update_fields=['last_synced'])
+                    c_unchanged += 1
+            except SMSCountrySnapshot.DoesNotExist:
+                SMSCountrySnapshot.objects.create(
+                    external_id=external_id,
+                    name=name,
+                    short_name=short_name,
+                    dial_code=dial_code,
+                    is_active=True,
+                )
+                c_created += 1
+    except SMSPoolAPIError as e:
+        logger.warning(f'SMSPool country sync failed: {e}')
+
+    # ── Services ──
+    s_created = s_updated = s_unchanged = 0
+    try:
+        raw_services = client.get_services()
+        for s in raw_services:
+            external_id = str(s.get('ID', s.get('id', '')))
+            name = s.get('name', '')
+            short_name = s.get('short_name', '')
+
+            try:
+                obj = SMSServiceSnapshot.objects.get(external_id=external_id)
+                if obj.name != name or obj.short_name != short_name:
+                    obj.name = name
+                    obj.short_name = short_name
+                    obj.save()
+                    s_updated += 1
+                else:
+                    obj.save(update_fields=['last_synced'])
+                    s_unchanged += 1
+            except SMSServiceSnapshot.DoesNotExist:
+                SMSServiceSnapshot.objects.create(
+                    external_id=external_id,
+                    name=name,
+                    short_name=short_name,
+                    is_active=True,
+                )
+                s_created += 1
+    except SMSPoolAPIError as e:
+        logger.warning(f'SMSPool service sync failed: {e}')
+
+    # Invalidate cache
     from django.core.cache import cache
     cache.delete('smspool_countries')
     cache.delete('smspool_services')
-    try:
-        client = SMSPoolClient()
-        from django.core.cache import cache as c
-        countries = client.get_countries()
-        c.set('smspool_countries', countries, 3600)
-        services = client.get_services()
-        c.set('smspool_services', services, 3600)
-        return 'SMSPool cache warmed.'
-    except Exception as e:
-        logger.warning(f'SMSPool cache warm failed: {e}')
-        return f'SMSPool cache warm error: {e}'
+
+    msg = (
+        f'SMS sync — Countries: {c_created} new, {c_updated} updated, {c_unchanged} unchanged. '
+        f'Services: {s_created} new, {s_updated} updated, {s_unchanged} unchanged.'
+    )
+    logger.info(msg)
+    return msg

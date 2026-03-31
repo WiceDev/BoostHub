@@ -951,3 +951,74 @@ export function unbanIP(ban_id: number) {
     method: 'DELETE',
   });
 }
+
+// --- Service Catalog (synced from external APIs) ---
+
+export interface CatalogBoostingService {
+  id: number;
+  external_id: number;
+  name: string;
+  service_type: string;
+  platform: string;
+  category: string;
+  cost_per_k_ngn: string;
+  min_quantity: number;
+  max_quantity: number;
+  refill: boolean;
+  cancel: boolean;
+  is_active: boolean;
+  last_synced: string;
+}
+
+export interface CatalogSMSCountry {
+  id: number;
+  external_id: string;
+  name: string;
+  short_name: string;
+  dial_code: string;
+  is_active: boolean;
+  last_synced: string;
+}
+
+export interface CatalogSMSService {
+  id: number;
+  external_id: string;
+  name: string;
+  short_name: string;
+  is_active: boolean;
+  last_synced: string;
+}
+
+export function fetchCatalogBoostingServices(platform?: string) {
+  const qs = platform ? `?platform=${encodeURIComponent(platform)}` : '';
+  return request<CatalogBoostingService[]>(`/admin/catalog/boosting/${qs}`);
+}
+
+export function toggleCatalogBoostingService(id: number, is_active: boolean) {
+  return request<{ id: number; is_active: boolean }>(`/admin/catalog/boosting/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active }),
+  });
+}
+
+export function fetchCatalogSMSCountries() {
+  return request<CatalogSMSCountry[]>('/admin/catalog/sms-countries/');
+}
+
+export function toggleCatalogSMSCountry(id: number, is_active: boolean) {
+  return request<{ id: number; is_active: boolean }>(`/admin/catalog/sms-countries/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active }),
+  });
+}
+
+export function fetchCatalogSMSServices() {
+  return request<CatalogSMSService[]>('/admin/catalog/sms-services/');
+}
+
+export function toggleCatalogSMSService(id: number, is_active: boolean) {
+  return request<{ id: number; is_active: boolean }>(`/admin/catalog/sms-services/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active }),
+  });
+}

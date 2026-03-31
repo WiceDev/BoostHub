@@ -1301,3 +1301,134 @@ def admin_banned_ip_detail(request, ban_id):
     cache.delete(f'banned_ip:{ip}')
 
     return Response({'detail': f'{ip} has been unbanned.'})
+
+
+# ---------------------------------------------------------------------------
+# Service Catalog — Boosting (BoostingServiceSnapshot)
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_boosting(request):
+    """List all synced boosting services with is_active toggle state."""
+    from api_integrations.models import BoostingServiceSnapshot
+    platform = request.query_params.get('platform', '')
+    qs = BoostingServiceSnapshot.objects.all().order_by('platform', 'category', 'name')
+    if platform:
+        qs = qs.filter(platform=platform)
+    data = [{
+        'id': s.id,
+        'external_id': s.external_id,
+        'name': s.name,
+        'service_type': s.service_type,
+        'platform': s.platform,
+        'category': s.category,
+        'cost_per_k_ngn': str(s.cost_per_k_ngn),
+        'min_quantity': s.min_quantity,
+        'max_quantity': s.max_quantity,
+        'refill': s.refill,
+        'cancel': s.cancel,
+        'is_active': s.is_active,
+        'last_synced': s.last_synced.isoformat(),
+    } for s in qs]
+    return Response(data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_boosting_detail(request, service_id):
+    """Toggle is_active for a boosting service snapshot."""
+    from api_integrations.models import BoostingServiceSnapshot
+    from django.core.cache import cache
+    try:
+        svc = BoostingServiceSnapshot.objects.get(pk=service_id)
+    except BoostingServiceSnapshot.DoesNotExist:
+        return Response({'detail': 'Service not found.'}, status=404)
+
+    if 'is_active' in request.data:
+        svc.is_active = bool(request.data['is_active'])
+        svc.save(update_fields=['is_active'])
+        cache.delete('rss_services_list')
+
+    return Response({'id': svc.id, 'is_active': svc.is_active})
+
+
+# ---------------------------------------------------------------------------
+# Service Catalog — SMS Countries (SMSCountrySnapshot)
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_countries(request):
+    """List all synced SMS countries with is_active toggle state."""
+    from api_integrations.models import SMSCountrySnapshot
+    qs = SMSCountrySnapshot.objects.all().order_by('name')
+    data = [{
+        'id': c.id,
+        'external_id': c.external_id,
+        'name': c.name,
+        'short_name': c.short_name,
+        'dial_code': c.dial_code,
+        'is_active': c.is_active,
+        'last_synced': c.last_synced.isoformat(),
+    } for c in qs]
+    return Response(data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_country_detail(request, country_id):
+    """Toggle is_active for an SMS country snapshot."""
+    from api_integrations.models import SMSCountrySnapshot
+    from django.core.cache import cache
+    try:
+        obj = SMSCountrySnapshot.objects.get(pk=country_id)
+    except SMSCountrySnapshot.DoesNotExist:
+        return Response({'detail': 'Country not found.'}, status=404)
+
+    if 'is_active' in request.data:
+        obj.is_active = bool(request.data['is_active'])
+        obj.save(update_fields=['is_active'])
+        cache.delete('smspool_countries')
+
+    return Response({'id': obj.id, 'is_active': obj.is_active})
+
+
+# ---------------------------------------------------------------------------
+# Service Catalog — SMS Services (SMSServiceSnapshot)
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_services(request):
+    """List all synced SMS services with is_active toggle state."""
+    from api_integrations.models import SMSServiceSnapshot
+    qs = SMSServiceSnapshot.objects.all().order_by('name')
+    data = [{
+        'id': s.id,
+        'external_id': s.external_id,
+        'name': s.name,
+        'short_name': s.short_name,
+        'is_active': s.is_active,
+        'last_synced': s.last_synced.isoformat(),
+    } for s in qs]
+    return Response(data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_service_detail(request, sms_service_id):
+    """Toggle is_active for an SMS service snapshot."""
+    from api_integrations.models import SMSServiceSnapshot
+    from django.core.cache import cache
+    try:
+        obj = SMSServiceSnapshot.objects.get(pk=sms_service_id)
+    except SMSServiceSnapshot.DoesNotExist:
+        return Response({'detail': 'Service not found.'}, status=404)
+
+    if 'is_active' in request.data:
+        obj.is_active = bool(request.data['is_active'])
+        obj.save(update_fields=['is_active'])
+        cache.delete('smspool_services')
+
+    return Response({'id': obj.id, 'is_active': obj.is_active})
