@@ -116,13 +116,29 @@ const BoostingPage = () => {
     return map;
   }, [services, search]);
 
+  // Always show all known platforms (with services first); but if there's an active
+  // search that returns no results, show the search-empty state instead of all cards.
+  const hasSearchResults = search ? Object.keys(grouped).length > 0 : true;
+
   const sortedPlatforms = useMemo(() => {
-    return Object.keys(grouped).sort((a, b) => {
+    if (search) {
+      // While searching, only show platforms that have matching results
+      return Object.keys(grouped).sort((a, b) => {
+        const countA = Object.values(grouped[a]).reduce((sum, arr) => sum + arr.length, 0);
+        const countB = Object.values(grouped[b]).reduce((sum, arr) => sum + arr.length, 0);
+        return countB - countA;
+      });
+    }
+    // Default: always show all known platforms, services-first
+    const withServices = Object.keys(grouped).sort((a, b) => {
       const countA = Object.values(grouped[a]).reduce((sum, arr) => sum + arr.length, 0);
       const countB = Object.values(grouped[b]).reduce((sum, arr) => sum + arr.length, 0);
       return countB - countA;
     });
-  }, [grouped]);
+    const allKnown = Object.keys(platformConfig);
+    const empty = allKnown.filter(p => !grouped[p]);
+    return [...withServices, ...empty];
+  }, [grouped, search]);
 
   // Price calculation
   const qty = parseInt(quantity) || 0;
@@ -265,7 +281,7 @@ const BoostingPage = () => {
             <RefreshCw className="h-4 w-4 mr-2" /> Retry
           </Button>
         </div>
-      ) : sortedPlatforms.length === 0 ? (
+      ) : !hasSearchResults ? (
         <div className="glass-card p-16 text-center">
           <Zap className="h-12 w-12 mx-auto mb-3 text-muted-foreground/20" />
           <h3 className="text-lg font-semibold text-foreground mb-1">No services found</h3>
@@ -277,10 +293,10 @@ const BoostingPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {sortedPlatforms.map((platform, idx) => {
               const c = cfg(platform);
-              const categories = grouped[platform];
+              const categories = grouped[platform] || {};
               const totalServices = Object.values(categories).reduce((sum, arr) => sum + arr.length, 0);
               const rowIdx = getRowIndex(idx);
-              const isExpanded = isMobile ? expandedPlatforms.has(platform) : activePlatform === platform;
+              const isExpanded = totalServices > 0 && (isMobile ? expandedPlatforms.has(platform) : activePlatform === platform);
               return (
                 <div
                   key={platform}
