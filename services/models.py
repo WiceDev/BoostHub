@@ -39,30 +39,17 @@ class Gift(models.Model):
 
 
 class BoostingService(models.Model):
-    PLATFORM_CHOICES = [
-        ('Instagram', 'Instagram'),
-        ('TikTok', 'TikTok'),
-        ('Twitter', 'Twitter'),
-        ('YouTube', 'YouTube'),
-        ('Facebook', 'Facebook'),
-    ]
-    CATEGORY_CHOICES = [
-        ('Followers', 'Followers'),
-        ('Likes', 'Likes'),
-        ('Views', 'Views'),
-        ('Subscribers', 'Subscribers'),
-        ('Comments', 'Comments'),
-    ]
-
-    name = models.CharField(max_length=255)
-    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    name = models.CharField(max_length=500)
+    platform = models.CharField(max_length=100, blank=True)
+    category = models.CharField(max_length=100, blank=True)
     price_per_k = models.DecimalField(
-        max_digits=10, decimal_places=2,
+        max_digits=12, decimal_places=4,
         help_text='Price per 1000 units'
     )
     min_quantity = models.PositiveIntegerField(default=100)
     max_quantity = models.PositiveIntegerField(default=100000)
+    # When set, this service was auto-created from a BoostingServiceSnapshot
+    catalog_snapshot_id = models.IntegerField(null=True, blank=True, db_index=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,12 +1,16 @@
 import { useState, useMemo } from "react";
-import { Database, Search, RefreshCw, Loader2, ChevronDown, RotateCcw } from "lucide-react";
+import { Database, Search, RefreshCw, Loader2, ChevronDown, RotateCcw, CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchCatalogBoostingServices, toggleCatalogBoostingService,
   fetchCatalogSMSCountries, toggleCatalogSMSCountry,
   fetchCatalogSMSServices, toggleCatalogSMSService,
+  bulkToggleCatalogBoostingServices,
+  bulkToggleCatalogSMSCountries,
+  bulkToggleCatalogSMSServices,
   syncCatalog,
   type CatalogBoostingService, type CatalogSMSCountry, type CatalogSMSService,
 } from "@/lib/api";
@@ -18,6 +22,46 @@ type Tab = "boosting" | "sms-countries" | "sms-services";
 const PLATFORMS = ["All", "Instagram", "TikTok", "Twitter", "YouTube", "Facebook",
   "Telegram", "Spotify", "LinkedIn", "Threads", "Snapchat", "Discord", "Twitch",
   "SoundCloud", "Pinterest", "Reddit", "Other"];
+
+// ── Bulk confirm dialog ────────────────────────────────────────────────────
+
+interface BulkConfirmProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  action: 'activate' | 'deactivate';
+  count: number;
+  loading: boolean;
+}
+
+function BulkConfirmDialog({ open, onClose, onConfirm, action, count, loading }: BulkConfirmProps) {
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{action === 'activate' ? 'Activate All?' : 'Deactivate All?'}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to <strong>{action}</strong> all <strong>{count}</strong> currently visible service{count !== 1 ? 's' : ''}?
+          {action === 'activate'
+            ? ' They will become visible to users and be added to Manage Services (for boosting).'
+            : ' They will be hidden from users immediately.'}
+        </p>
+        <DialogFooter className="gap-2 mt-2">
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button
+            variant={action === 'deactivate' ? 'destructive' : 'default'}
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Yes, {action} all
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ── Generic toggle switch ──────────────────────────────────────────────────
 
@@ -77,6 +121,8 @@ function BoostingTab() {
   const [platform, setPlatform] = useState("All");
   const [category, setCategory] = useState("All");
   const [toggling, setToggling] = useState<Set<number>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<'activate' | 'deactivate' | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const { data: services = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-catalog-boosting"],
@@ -109,11 +155,7 @@ function BoostingTab() {
     return ["All", ...[...set].sort()];
   }, [services, platform]);
 
-  // Reset category when platform changes and current category isn't available
-  const handlePlatformChange = (p: string) => {
-    setPlatform(p);
-    setCategory("All");
-  };
+  const handlePlatformChange = (p: string) => { setPlatform(p); setCategory("All"); };
 
   const filtered = useMemo(() => {
     let list = services;
@@ -127,6 +169,25 @@ function BoostingTab() {
   }, [services, platform, category, search]);
 
   const activeCount = services.filter(s => s.is_active).length;
+
+  const handleBulkConfirm = async () => {
+    if (!bulkConfirm) return;
+    setBulkLoading(true);
+    const is_active = bulkConfirm === 'activate';
+    const ids = filtered.map(s => s.id);
+    try {
+      await bulkToggleCatalogBoostingServices(ids, is_active);
+      queryClient.setQueryData<CatalogBoostingService[]>(["admin-catalog-boosting"], (old = []) =>
+        old.map(s => ids.includes(s.id) ? { ...s, is_active } : s)
+      );
+      toast.success(`${filtered.length} services ${is_active ? 'activated' : 'deactivated'}.`);
+    } catch {
+      toast.error('Bulk update failed.');
+    } finally {
+      setBulkLoading(false);
+      setBulkConfirm(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -142,9 +203,30 @@ function BoostingTab() {
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground">
-        {activeCount} of {services.length} active · showing {filtered.length}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-xs text-muted-foreground">
+          {activeCount} of {services.length} active · showing {filtered.length}
+        </span>
+        {filtered.length > 0 && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('activate')} disabled={bulkLoading}>
+              <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Select All ({filtered.length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('deactivate')} disabled={bulkLoading}>
+              <Square className="h-3.5 w-3.5 mr-1.5" /> Deselect All
+            </Button>
+          </div>
+        )}
       </div>
+
+      <BulkConfirmDialog
+        open={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        onConfirm={handleBulkConfirm}
+        action={bulkConfirm || 'activate'}
+        count={filtered.length}
+        loading={bulkLoading}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -201,6 +283,8 @@ function SMSCountriesTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<Set<number>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<'activate' | 'deactivate' | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const { data: countries = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-catalog-sms-countries"],
@@ -228,6 +312,25 @@ function SMSCountriesTab() {
 
   const activeCount = countries.filter(c => c.is_active).length;
 
+  const handleBulkConfirm = async () => {
+    if (!bulkConfirm) return;
+    setBulkLoading(true);
+    const is_active = bulkConfirm === 'activate';
+    const ids = filtered.map(c => c.id);
+    try {
+      await bulkToggleCatalogSMSCountries(ids, is_active);
+      queryClient.setQueryData<CatalogSMSCountry[]>(["admin-catalog-sms-countries"], (old = []) =>
+        old.map(c => ids.includes(c.id) ? { ...c, is_active } : c)
+      );
+      toast.success(`${filtered.length} countries ${is_active ? 'activated' : 'deactivated'}.`);
+    } catch {
+      toast.error('Bulk update failed.');
+    } finally {
+      setBulkLoading(false);
+      setBulkConfirm(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
@@ -240,9 +343,30 @@ function SMSCountriesTab() {
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground">
-        {activeCount} of {countries.length} active · showing {filtered.length}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-xs text-muted-foreground">
+          {activeCount} of {countries.length} active · showing {filtered.length}
+        </span>
+        {filtered.length > 0 && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('activate')} disabled={bulkLoading}>
+              <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Select All ({filtered.length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('deactivate')} disabled={bulkLoading}>
+              <Square className="h-3.5 w-3.5 mr-1.5" /> Deselect All
+            </Button>
+          </div>
+        )}
       </div>
+
+      <BulkConfirmDialog
+        open={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        onConfirm={handleBulkConfirm}
+        action={bulkConfirm || 'activate'}
+        count={filtered.length}
+        loading={bulkLoading}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -292,6 +416,8 @@ function SMSServicesTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<Set<number>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState<'activate' | 'deactivate' | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const { data: services = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-catalog-sms-services"],
@@ -319,6 +445,25 @@ function SMSServicesTab() {
 
   const activeCount = services.filter(s => s.is_active).length;
 
+  const handleBulkConfirm = async () => {
+    if (!bulkConfirm) return;
+    setBulkLoading(true);
+    const is_active = bulkConfirm === 'activate';
+    const ids = filtered.map(s => s.id);
+    try {
+      await bulkToggleCatalogSMSServices(ids, is_active);
+      queryClient.setQueryData<CatalogSMSService[]>(["admin-catalog-sms-services"], (old = []) =>
+        old.map(s => ids.includes(s.id) ? { ...s, is_active } : s)
+      );
+      toast.success(`${filtered.length} services ${is_active ? 'activated' : 'deactivated'}.`);
+    } catch {
+      toast.error('Bulk update failed.');
+    } finally {
+      setBulkLoading(false);
+      setBulkConfirm(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-3">
@@ -331,9 +476,30 @@ function SMSServicesTab() {
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground">
-        {activeCount} of {services.length} active · showing {filtered.length}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <span className="text-xs text-muted-foreground">
+          {activeCount} of {services.length} active · showing {filtered.length}
+        </span>
+        {filtered.length > 0 && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('activate')} disabled={bulkLoading}>
+              <CheckSquare className="h-3.5 w-3.5 mr-1.5" /> Select All ({filtered.length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkConfirm('deactivate')} disabled={bulkLoading}>
+              <Square className="h-3.5 w-3.5 mr-1.5" /> Deselect All
+            </Button>
+          </div>
+        )}
       </div>
+
+      <BulkConfirmDialog
+        open={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        onConfirm={handleBulkConfirm}
+        action={bulkConfirm || 'activate'}
+        count={filtered.length}
+        loading={bulkLoading}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">

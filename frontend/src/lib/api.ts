@@ -1029,3 +1029,24 @@ export function syncCatalog(target: 'boosting' | 'sms' | 'all') {
     body: JSON.stringify({ target }),
   });
 }
+
+export function bulkToggleCatalogBoostingServices(ids: number[], is_active: boolean) {
+  return request<{ updated: number; is_active: boolean }>('/admin/catalog/boosting/bulk/', {
+    method: 'POST',
+    body: JSON.stringify({ ids, is_active }),
+  });
+}
+
+export function bulkToggleCatalogSMSCountries(ids: number[], is_active: boolean) {
+  return request<{ updated: number; is_active: boolean }>('/admin/catalog/sms-countries/bulk/', {
+    method: 'POST',
+    body: JSON.stringify({ ids, is_active }),
+  });
+}
+
+export function bulkToggleCatalogSMSServices(ids: number[], is_active: boolean) {
+  return request<{ updated: number; is_active: boolean }>('/admin/catalog/sms-services/bulk/', {
+    method: 'POST',
+    body: JSON.stringify({ ids, is_active }),
+  });
+}

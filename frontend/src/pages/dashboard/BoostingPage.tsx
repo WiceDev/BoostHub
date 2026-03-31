@@ -459,6 +459,7 @@ const BoostingPage = () => {
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Service</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Link</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Qty</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Rate /1k</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Price</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Status</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Date</th>
@@ -474,13 +475,14 @@ const BoostingPage = () => {
                       <td className="px-6 py-4"><Skeleton className="h-4 w-32" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-5 w-20 rounded-full" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-24" /></td>
                     </tr>
                   ))}
                 </>
               ) : boostOrders.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">No boosting orders yet.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">No boosting orders yet.</td></tr>
               ) : (
                 (boostOrders as Order[]).map((order, index) => {
                   const extData = order.external_data as Record<string, string | number>;
@@ -513,6 +515,9 @@ const BoostingPage = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">
                         {quantity ? Number(quantity).toLocaleString() : "—"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {extData?.rate_per_k_ngn ? formatAmount(String(extData.rate_per_k_ngn)) : "—"}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-foreground">{formatAmount(order.amount)}</td>
                       <td className="px-6 py-4">

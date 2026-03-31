@@ -42,9 +42,9 @@ from core.admin_api_views import (
     admin_ip_logs,
     admin_banned_ips,
     admin_banned_ip_detail,
-    admin_catalog_boosting, admin_catalog_boosting_detail,
-    admin_catalog_sms_countries, admin_catalog_sms_country_detail,
-    admin_catalog_sms_services, admin_catalog_sms_service_detail,
+    admin_catalog_boosting, admin_catalog_boosting_detail, admin_catalog_boosting_bulk,
+    admin_catalog_sms_countries, admin_catalog_sms_country_detail, admin_catalog_sms_countries_bulk,
+    admin_catalog_sms_services, admin_catalog_sms_service_detail, admin_catalog_sms_services_bulk,
     admin_catalog_sync,
 )
 
@@ -166,10 +166,13 @@ urlpatterns = [
 
     # Service Catalog (synced from external APIs)
     path('admin/catalog/boosting/', admin_catalog_boosting, name='admin_catalog_boosting'),
+    path('admin/catalog/boosting/bulk/', admin_catalog_boosting_bulk, name='admin_catalog_boosting_bulk'),
     path('admin/catalog/boosting/<int:service_id>/', admin_catalog_boosting_detail, name='admin_catalog_boosting_detail'),
     path('admin/catalog/sms-countries/', admin_catalog_sms_countries, name='admin_catalog_sms_countries'),
+    path('admin/catalog/sms-countries/bulk/', admin_catalog_sms_countries_bulk, name='admin_catalog_sms_countries_bulk'),
     path('admin/catalog/sms-countries/<int:country_id>/', admin_catalog_sms_country_detail, name='admin_catalog_sms_country_detail'),
     path('admin/catalog/sms-services/', admin_catalog_sms_services, name='admin_catalog_sms_services'),
+    path('admin/catalog/sms-services/bulk/', admin_catalog_sms_services_bulk, name='admin_catalog_sms_services_bulk'),
     path('admin/catalog/sms-services/<int:sms_service_id>/', admin_catalog_sms_service_detail, name='admin_catalog_sms_service_detail'),
     path('admin/catalog/sync/', admin_catalog_sync, name='admin_catalog_sync'),
 ]

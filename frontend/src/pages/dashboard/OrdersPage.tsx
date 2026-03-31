@@ -231,9 +231,6 @@ const OrdersPage = () => {
             {/* ── Mobile card list (hidden on lg+) ── */}
             <div className="lg:hidden divide-y divide-border/30">
               {filtered.map((order) => {
-                const ext = order.external_data as Record<string, string | number>;
-                const qty = order.service_type === "boosting" ? ext?.quantity : null;
-                const rate = order.service_type === "boosting" ? ext?.rate_per_k_ngn : null;
                 const isOpen = expandedId === order.id;
                 return (
                   <div key={order.id} className="p-4 hover:bg-muted/30 transition-colors">
@@ -243,12 +240,6 @@ const OrdersPage = () => {
                         <p className="text-xs text-muted-foreground capitalize mt-0.5">
                           {(serviceTypeLabels[order.service_type] || order.service_type.replace(/_/g, " "))} · #{order.id}
                         </p>
-                        {qty && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Qty: <span className="font-medium text-foreground">{qty}</span>
-                            {rate && <> · Rate: <span className="font-medium text-foreground">{formatAmount(String(rate))}/1k</span></>}
-                          </p>
-                        )}
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {new Date(order.created_at).toLocaleDateString("en-NG", {
                             day: "numeric", month: "short", year: "numeric",
@@ -286,8 +277,6 @@ const OrdersPage = () => {
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Order ID</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Service</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Type</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Qty</th>
-                    <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Rate /1k</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Price</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Status</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3.5">Date</th>
@@ -295,9 +284,6 @@ const OrdersPage = () => {
                 </thead>
                 <tbody>
                   {filtered.map((order, index) => {
-                    const ext = order.external_data as Record<string, string | number>;
-                    const qty = order.service_type === "boosting" ? ext?.quantity : null;
-                    const rate = order.service_type === "boosting" ? ext?.rate_per_k_ngn : null;
                     const isOpen = expandedId === order.id;
                     return (
                     <tr
@@ -320,10 +306,6 @@ const OrdersPage = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground capitalize">
                         {serviceTypeLabels[order.service_type] || order.service_type.replace(/_/g, " ")}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-foreground">{qty ?? <span className="text-muted-foreground">—</span>}</td>
-                      <td className="px-6 py-4 text-sm text-foreground">
-                        {rate ? formatAmount(String(rate)) : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-foreground">
                         {formatAmount(order.amount)}

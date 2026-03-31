@@ -1334,10 +1334,35 @@ def admin_catalog_boosting(request):
     return Response(data)
 
 
+def _sync_boosting_service(svc):
+    """Create or update a BoostingService record from a BoostingServiceSnapshot."""
+    from decimal import Decimal, ROUND_UP
+    from services.models import BoostingService
+    platform_settings = PlatformSettings.load()
+    markup = Decimal('1') + (platform_settings.boosting_markup_percent / Decimal('100'))
+    price_per_k = (svc.cost_per_k_ngn * markup).quantize(Decimal('0.01'), rounding=ROUND_UP)
+    if svc.is_active:
+        BoostingService.objects.update_or_create(
+            catalog_snapshot_id=svc.external_id,
+            defaults={
+                'name': svc.name,
+                'platform': svc.platform,
+                'category': svc.category or 'Other',
+                'price_per_k': price_per_k,
+                'min_quantity': svc.min_quantity,
+                'max_quantity': svc.max_quantity,
+                'is_active': True,
+            }
+        )
+    else:
+        from services.models import BoostingService
+        BoostingService.objects.filter(catalog_snapshot_id=svc.external_id).update(is_active=False)
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated, IsAdminUser])
 def admin_catalog_boosting_detail(request, service_id):
-    """Toggle is_active for a boosting service snapshot."""
+    """Toggle is_active for a boosting service snapshot; syncs to Manage Services."""
     from api_integrations.models import BoostingServiceSnapshot
     from django.core.cache import cache
     try:
@@ -1349,8 +1374,31 @@ def admin_catalog_boosting_detail(request, service_id):
         svc.is_active = bool(request.data['is_active'])
         svc.save(update_fields=['is_active'])
         cache.delete('rss_services_db_v1')
+        _sync_boosting_service(svc)
 
     return Response({'id': svc.id, 'is_active': svc.is_active})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_boosting_bulk(request):
+    """Bulk toggle is_active for multiple boosting service snapshots."""
+    from api_integrations.models import BoostingServiceSnapshot
+    from django.core.cache import cache
+    ids = request.data.get('ids', [])
+    is_active = bool(request.data.get('is_active', False))
+
+    if not ids:
+        return Response({'detail': 'ids list is required.'}, status=400)
+
+    updated = BoostingServiceSnapshot.objects.filter(pk__in=ids).update(is_active=is_active)
+    cache.delete('rss_services_db_v1')
+
+    # Sync each affected snapshot to BoostingService
+    for svc in BoostingServiceSnapshot.objects.filter(pk__in=ids):
+        _sync_boosting_service(svc)
+
+    return Response({'updated': updated, 'is_active': is_active})
 
 
 # ---------------------------------------------------------------------------
@@ -1394,6 +1442,21 @@ def admin_catalog_sms_country_detail(request, country_id):
     return Response({'id': obj.id, 'is_active': obj.is_active})
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_countries_bulk(request):
+    """Bulk toggle is_active for SMS country snapshots."""
+    from api_integrations.models import SMSCountrySnapshot
+    from django.core.cache import cache
+    ids = request.data.get('ids', [])
+    is_active = bool(request.data.get('is_active', False))
+    if not ids:
+        return Response({'detail': 'ids list is required.'}, status=400)
+    updated = SMSCountrySnapshot.objects.filter(pk__in=ids).update(is_active=is_active)
+    cache.delete('smspool_countries')
+    return Response({'updated': updated, 'is_active': is_active})
+
+
 # ---------------------------------------------------------------------------
 # Service Catalog — SMS Services (SMSServiceSnapshot)
 # ---------------------------------------------------------------------------
@@ -1432,6 +1495,21 @@ def admin_catalog_sms_service_detail(request, sms_service_id):
         cache.delete('smspool_services')
 
     return Response({'id': obj.id, 'is_active': obj.is_active})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_catalog_sms_services_bulk(request):
+    """Bulk toggle is_active for SMS service snapshots."""
+    from api_integrations.models import SMSServiceSnapshot
+    from django.core.cache import cache
+    ids = request.data.get('ids', [])
+    is_active = bool(request.data.get('is_active', False))
+    if not ids:
+        return Response({'detail': 'ids list is required.'}, status=400)
+    updated = SMSServiceSnapshot.objects.filter(pk__in=ids).update(is_active=is_active)
+    cache.delete('smspool_services')
+    return Response({'updated': updated, 'is_active': is_active})
 
 
 # ---------------------------------------------------------------------------
