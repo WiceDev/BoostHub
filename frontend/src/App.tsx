@@ -44,6 +44,7 @@ import UpdatesPage from "./pages/dashboard/UpdatesPage";
 import AdminTicketsPage from "./pages/admin/AdminTicketsPage";
 import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
 import AdminApiLogsPage from "./pages/admin/AdminApiLogsPage";
+import AdminAnnouncementsPage from "./pages/admin/AdminAnnouncementsPage";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +141,7 @@ const App = () => (
             <Route path="/admin/tickets" element={<AdminRoute><DashboardLayout><AdminTicketsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/catalog" element={<AdminRoute><DashboardLayout><AdminCatalogPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/api-logs" element={<AdminRoute><DashboardLayout><AdminApiLogsPage /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin/announcements" element={<AdminRoute><DashboardLayout><AdminAnnouncementsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><DashboardLayout><ProfilePage /></DashboardLayout></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

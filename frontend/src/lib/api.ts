@@ -340,6 +340,38 @@ export function fetchAnnouncements() {
   return request<Announcement[]>('/announcements/');
 }
 
+// --- Admin Announcements ---
+export interface AdminAnnouncement {
+  id: number;
+  title: string;
+  body: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function fetchAdminAnnouncements() {
+  return request<AdminAnnouncement[]>('/admin/announcements/');
+}
+
+export function createAnnouncement(data: { title: string; body: string; is_active: boolean }) {
+  return request<AdminAnnouncement>('/admin/announcements/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAnnouncement(id: number, data: Partial<{ title: string; body: string; is_active: boolean }>) {
+  return request<AdminAnnouncement>(`/admin/announcements/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAnnouncement(id: number) {
+  return request<{ detail: string }>(`/admin/announcements/${id}/`, { method: 'DELETE' });
+}
+
 // --- Dashboard ---
 
 export interface DashboardStats {

@@ -1547,6 +1547,80 @@ def admin_catalog_sync(request):
 
 
 # ---------------------------------------------------------------------------
+# Announcements CRUD
+# ---------------------------------------------------------------------------
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_announcements(request):
+    from notifications.models import Announcement
+
+    if request.method == 'GET':
+        announcements = Announcement.objects.all()
+        data = [{
+            'id': a.id,
+            'title': a.title,
+            'body': a.body,
+            'is_active': a.is_active,
+            'created_at': a.created_at.isoformat(),
+            'updated_at': a.updated_at.isoformat(),
+        } for a in announcements]
+        return Response(data)
+
+    # POST — create new announcement
+    title = str(request.data.get('title', '')).strip()
+    body = str(request.data.get('body', '')).strip()
+    if not title or not body:
+        return Response({'detail': 'title and body are required.'}, status=400)
+
+    announcement = Announcement.objects.create(
+        title=title,
+        body=body,
+        is_active=request.data.get('is_active', True),
+    )
+    return Response({
+        'id': announcement.id,
+        'title': announcement.title,
+        'body': announcement.body,
+        'is_active': announcement.is_active,
+        'created_at': announcement.created_at.isoformat(),
+        'updated_at': announcement.updated_at.isoformat(),
+    }, status=201)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_announcement_detail(request, announcement_id):
+    from notifications.models import Announcement
+
+    try:
+        announcement = Announcement.objects.get(pk=announcement_id)
+    except Announcement.DoesNotExist:
+        return Response({'detail': 'Announcement not found.'}, status=404)
+
+    if request.method == 'DELETE':
+        announcement.delete()
+        return Response({'detail': 'Announcement deleted.'})
+
+    # PATCH
+    if 'title' in request.data:
+        announcement.title = str(request.data['title']).strip()
+    if 'body' in request.data:
+        announcement.body = str(request.data['body']).strip()
+    if 'is_active' in request.data:
+        announcement.is_active = bool(request.data['is_active'])
+    announcement.save()
+    return Response({
+        'id': announcement.id,
+        'title': announcement.title,
+        'body': announcement.body,
+        'is_active': announcement.is_active,
+        'created_at': announcement.created_at.isoformat(),
+        'updated_at': announcement.updated_at.isoformat(),
+    })
+
+
+# ---------------------------------------------------------------------------
 # API Call Logs
 # ---------------------------------------------------------------------------
 
