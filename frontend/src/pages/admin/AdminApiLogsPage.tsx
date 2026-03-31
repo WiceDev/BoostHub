@@ -33,7 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const PROVIDERS = [
-  { value: "", label: "All Providers" },
+  { value: "all", label: "All Providers" },
   { value: "rss", label: "RSS SMM Panel" },
   { value: "smspool", label: "SMSPool" },
   { value: "paystack", label: "Paystack" },
@@ -41,7 +41,7 @@ const PROVIDERS = [
 ];
 
 const SUCCESS_OPTIONS = [
-  { value: "", label: "All" },
+  { value: "all", label: "All" },
   { value: "true", label: "Success" },
   { value: "false", label: "Failed" },
 ];
@@ -126,8 +126,8 @@ export default function AdminApiLogsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [provider, setProvider] = useState("");
-  const [successFilter, setSuccessFilter] = useState("");
+  const [provider, setProvider] = useState("all");
+  const [successFilter, setSuccessFilter] = useState("all");
   const [actionSearch, setActionSearch] = useState("");
   const [triggeredBySearch, setTriggeredBySearch] = useState("");
   const [page, setPage] = useState(1);
@@ -141,8 +141,8 @@ export default function AdminApiLogsPage() {
     queryKey,
     queryFn: () =>
       fetchAPILogs({
-        provider: provider || undefined,
-        success: successFilter === "" ? undefined : successFilter === "true",
+        provider: provider !== "all" ? provider : undefined,
+        success: successFilter === "all" ? undefined : successFilter === "true",
         action: actionSearch || undefined,
         triggered_by: triggeredBySearch || undefined,
         page,
@@ -158,7 +158,7 @@ export default function AdminApiLogsPage() {
   const handleClear = async () => {
     setClearing(true);
     try {
-      const res = await clearAPILogs(provider || undefined);
+      const res = await clearAPILogs(provider !== "all" ? provider : undefined);
       toast({ title: "Cleared", description: res.detail });
       queryClient.invalidateQueries({ queryKey: ["admin-api-logs"] });
     } catch {
@@ -170,8 +170,8 @@ export default function AdminApiLogsPage() {
   };
 
   const resetFilters = () => {
-    setProvider("");
-    setSuccessFilter("");
+    setProvider("all");
+    setSuccessFilter("all");
     setActionSearch("");
     setTriggeredBySearch("");
     setPage(1);
@@ -278,7 +278,7 @@ export default function AdminApiLogsPage() {
           />
         </div>
 
-        {(provider || successFilter || actionSearch || triggeredBySearch) && (
+        {(provider !== "all" || successFilter !== "all" || actionSearch || triggeredBySearch) && (
           <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9">
             Clear filters
           </Button>
@@ -414,7 +414,7 @@ export default function AdminApiLogsPage() {
           <DialogHeader>
             <DialogTitle>Clear API Logs</DialogTitle>
             <DialogDescription>
-              {provider
+              {provider !== "all"
                 ? `Delete all logs for provider "${provider}"?`
                 : "Delete ALL API call logs? This cannot be undone."}
             </DialogDescription>
