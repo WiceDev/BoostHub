@@ -166,24 +166,19 @@ const BoostingPage = () => {
   // Figure out which row index a platform is in (3 per row on lg, 2 on sm, 1 on xs)
   const getRowIndex = (platformIndex: number) => Math.floor(platformIndex / 3);
 
-  const togglePlatform = (platform: string, platformIndex: number) => {
+  const togglePlatform = (platform: string, _platformIndex: number) => {
     if (isMobile) {
       setExpandedPlatforms((prev) => {
-        const next = new Set(prev);
-        if (next.has(platform)) next.delete(platform);
-        else next.add(platform);
-        return next;
+        if (prev.has(platform)) return new Set();
+        return new Set([platform]);
       });
       setExpandedCategories(new Set());
       return;
     }
-    const row = getRowIndex(platformIndex);
-    if (expandedRow === row && activePlatform === platform) {
-      setExpandedRow(null);
+    if (activePlatform === platform) {
       setActivePlatform(null);
       setExpandedCategories(new Set());
     } else {
-      setExpandedRow(row);
       setActivePlatform(platform);
       setExpandedCategories(new Set());
     }
