@@ -11,7 +11,7 @@ const AnnouncementsPage = () => {
   });
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 w-full max-w-2xl mx-auto px-1">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-t-2xl">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />

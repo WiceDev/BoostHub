@@ -370,12 +370,19 @@ const DashboardHome = () => {
                     <span className="text-[11px] font-bold uppercase tracking-widest text-primary">{badgeLabel}</span>
                   </div>
                   <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                  <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed">{a.body}</p>
-                  {announcements.length > 1 && (
-                    <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                      See {announcements.length - 1} older announcement{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
-                    </Link>
-                  )}
+                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-4">{a.body}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                    {a.body.length > 160 && (
+                      <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                        See more <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                    {announcements.length > 1 && (
+                      <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary/70 hover:underline">
+                        See older <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -481,12 +488,19 @@ const DashboardHome = () => {
                       <span className="text-[11px] font-bold uppercase tracking-widest text-primary">{badgeLabel}</span>
                     </div>
                     <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed flex-1">{a.body}</p>
-                    {announcements.length > 1 && (
-                      <Link to="/dashboard/updates" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                        See {announcements.length - 1} older announcement{announcements.length - 1 > 1 ? "s" : ""} <ChevronRight className="h-3 w-3" />
-                      </Link>
-                    )}
+                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-4 flex-1">{a.body}</p>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                      {a.body.length > 160 && (
+                        <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                          See more <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                      {announcements.length > 1 && (
+                        <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary/70 hover:underline">
+                          See older <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
