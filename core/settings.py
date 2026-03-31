@@ -202,8 +202,8 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-    # Force HTTPS redirect + secure cookies
-    SECURE_SSL_REDIRECT = True
+    # Secure cookies (HTTPS enforced at Railway/reverse-proxy level, not here —
+    # SECURE_SSL_REDIRECT breaks internal healthchecks that hit HTTP directly)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
