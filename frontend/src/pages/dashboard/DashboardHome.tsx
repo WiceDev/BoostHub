@@ -198,6 +198,7 @@ const DashboardHome = () => {
   const { data: wallet, isLoading: walletLoading } = useQuery({ queryKey: ['wallet'], queryFn: fetchWallet });
   const { data: transactions, isLoading: txLoading } = useQuery({ queryKey: ['transactions'], queryFn: fetchTransactions });
   const { data: announcements } = useQuery({ queryKey: ['announcements'], queryFn: fetchAnnouncements, staleTime: 5 * 60 * 1000 });
+  const [announcementExpanded, setAnnouncementExpanded] = useState(false);
 
   const isLoading = statsLoading || walletLoading || txLoading || ordersLoading;
   const isError = statsError || ordersError;
@@ -370,16 +371,19 @@ const DashboardHome = () => {
                     <span className="text-[11px] font-bold uppercase tracking-widest text-primary">{badgeLabel}</span>
                   </div>
                   <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                  <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-4">{a.body}</p>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                  <p className={`text-sm text-muted-foreground mt-2 leading-relaxed ${announcementExpanded ? "whitespace-pre-line" : "line-clamp-4"}`}>{a.body}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
                     {a.body.length > 160 && (
-                      <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                        See more <ChevronRight className="h-3 w-3" />
-                      </Link>
+                      <button
+                        onClick={() => setAnnouncementExpanded((v) => !v)}
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                      >
+                        {announcementExpanded ? "See less" : "See more"} <ChevronRight className={`h-3.5 w-3.5 transition-transform ${announcementExpanded ? "rotate-90" : ""}`} />
+                      </button>
                     )}
                     {announcements.length > 1 && (
-                      <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary/70 hover:underline">
-                        See older <ChevronRight className="h-3 w-3" />
+                      <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-sm font-semibold text-primary/70 hover:underline">
+                        See older <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
                     )}
                   </div>
@@ -488,16 +492,19 @@ const DashboardHome = () => {
                       <span className="text-[11px] font-bold uppercase tracking-widest text-primary">{badgeLabel}</span>
                     </div>
                     <p className="text-base font-bold text-foreground leading-snug">{a.title}</p>
-                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-4 flex-1">{a.body}</p>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                    <p className={`text-sm text-muted-foreground mt-2 leading-relaxed flex-1 ${announcementExpanded ? "whitespace-pre-line" : "line-clamp-4"}`}>{a.body}</p>
+                    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
                       {a.body.length > 160 && (
-                        <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                          See more <ChevronRight className="h-3 w-3" />
-                        </Link>
+                        <button
+                          onClick={() => setAnnouncementExpanded((v) => !v)}
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                        >
+                          {announcementExpanded ? "See less" : "See more"} <ChevronRight className={`h-3.5 w-3.5 transition-transform ${announcementExpanded ? "rotate-90" : ""}`} />
+                        </button>
                       )}
                       {announcements.length > 1 && (
-                        <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-xs font-semibold text-primary/70 hover:underline">
-                          See older <ChevronRight className="h-3 w-3" />
+                        <Link to="/dashboard/updates" className="inline-flex items-center gap-1 text-sm font-semibold text-primary/70 hover:underline">
+                          See older <ChevronRight className="h-3.5 w-3.5" />
                         </Link>
                       )}
                     </div>
