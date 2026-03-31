@@ -1,15 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Phone, Loader2, AlertTriangle, CheckCircle2, Copy,
   Wallet, X, Clock, ShieldCheck, ChevronDown, Check,
-  RotateCcw, ChevronsUpDown,
+  RotateCcw, ChevronsUpDown, Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchSMSCountries, fetchSMSServices, fetchSMSPrice,
@@ -36,7 +35,23 @@ function SearchableDropdown<T extends { id: string; name: string }>({
   items, value, onChange, placeholder, searchPlaceholder, loading, loadingText,
 }: SearchableDropdownProps<T>) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const selected = items.find((item) => item.id === value);
+
+  const filtered = useMemo(() => {
+    if (!query) return items;
+    const q = query.toLowerCase();
+    return items.filter((item) => item.name.toLowerCase().includes(q));
+  }, [items, query]);
+
+  // Focus search input when popover opens
+  useEffect(() => {
+    if (open) {
+      setQuery("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
 
   if (loading) {
     return (
@@ -63,24 +78,37 @@ function SearchableDropdown<T extends { id: string; name: string }>({
         </button>
       </PopoverTrigger>
       <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start" side="bottom">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList className="max-h-[280px]">
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup>
-              {items.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={item.name}
-                  onSelect={() => { onChange(item.id); setOpen(false); }}
-                >
-                  <Check className={cn("mr-2 h-4 w-4", value === item.id ? "opacity-100" : "opacity-0")} />
-                  {item.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+        <div className="flex items-center border-b border-border/30 px-3">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="flex-1 bg-transparent py-3 px-2 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="max-h-[280px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No results found.</p>
+          ) : (
+            filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left hover:bg-muted/50 transition-colors"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(item.id);
+                  setOpen(false);
+                }}
+              >
+                <Check className={cn("h-4 w-4 shrink-0", value === item.id ? "opacity-100 text-primary" : "opacity-0")} />
+                <span className="truncate">{item.name}</span>
+              </button>
+            ))
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

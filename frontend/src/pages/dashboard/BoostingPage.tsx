@@ -518,7 +518,7 @@ const BoostingPage = () => {
 
       {/* Order Dialog */}
       <Dialog open={!!selectedService && !orderSuccess} onOpenChange={() => setSelectedService(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedService && (
@@ -531,7 +531,7 @@ const BoostingPage = () => {
           </DialogHeader>
 
           {selectedService && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2 overflow-y-auto flex-1 min-h-0 -mx-6 px-6">
               {/* Service info */}
               <div className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-2">
                 <div className="flex justify-between text-xs">
@@ -553,10 +553,23 @@ const BoostingPage = () => {
                 <Input
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  placeholder="https://instagram.com/username"
+                  placeholder={
+                    selectedService.platform === "Telegram" ? "https://t.me/yourchannel" :
+                    selectedService.platform === "YouTube" ? "https://youtube.com/watch?v=..." :
+                    selectedService.platform === "TikTok" ? "https://tiktok.com/@username/video/..." :
+                    selectedService.platform === "Twitter" ? "https://twitter.com/username" :
+                    selectedService.platform === "Facebook" ? "https://facebook.com/page" :
+                    selectedService.platform === "Spotify" ? "https://open.spotify.com/track/..." :
+                    selectedService.platform === "LinkedIn" ? "https://linkedin.com/in/username" :
+                    `https://${selectedService.platform.toLowerCase()}.com/...`
+                  }
                   className="h-11"
                 />
-                <p className="text-[10px] text-muted-foreground">Enter the URL of the profile or post you want to boost</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {selectedService.platform === "Telegram"
+                    ? "Enter your Telegram channel or group invite link"
+                    : "Enter the URL of the profile or post you want to boost"}
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -613,7 +626,7 @@ const BoostingPage = () => {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button variant="outline" onClick={() => setSelectedService(null)}>Cancel</Button>
             <Button
               onClick={handlePlaceOrder}
