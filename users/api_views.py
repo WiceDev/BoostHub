@@ -12,7 +12,7 @@ from .serializers import (
 )
 from core.recaptcha import verify_recaptcha
 from core.middleware import log_ip_action
-from .verification import send_verification_email, verify_token
+from .verification import send_verification_email, send_welcome_email, verify_token
 from .password_reset import send_reset_email, verify_reset_token
 from .models import User
 from .totp_utils import generate_secret, verify_code, provisioning_uri
@@ -53,6 +53,7 @@ def api_verify_email(request):
 
     user.is_verified = True
     user.save(update_fields=['is_verified'])
+    send_welcome_email(user)
     return Response({'detail': 'Email verified successfully.'})
 
 

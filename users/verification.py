@@ -53,3 +53,23 @@ def send_verification_email(user, request=None):
     )
     email.content_subtype = 'html'
     email.send(fail_silently=True)
+
+
+def send_welcome_email(user):
+    """Send a welcome email after a user's email is verified."""
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:8080')
+    dashboard_url = f"{frontend_url.rstrip('/')}/dashboard"
+
+    html_body = render_to_string('emails/welcome_email.html', {
+        'first_name': user.first_name or user.email.split('@')[0],
+        'dashboard_url': dashboard_url,
+    })
+
+    email = EmailMessage(
+        subject="Welcome to BoostHub 🎉 — You're all set!",
+        body=html_body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.content_subtype = 'html'
+    email.send(fail_silently=True)
