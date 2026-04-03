@@ -474,8 +474,8 @@ const NumbersPage = () => {
 
                 {(servicesError || countriesError) && (
                   <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                    {servicesError && <p>Services error: {(servicesError as Error).message}</p>}
-                    {countriesError && <p>Countries error: {(countriesError as Error).message}</p>}
+                    {servicesError && <p>Failed to load services. Please try again later.</p>}
+                    {countriesError && <p>Failed to load countries. Please try again later.</p>}
                   </div>
                 )}
 

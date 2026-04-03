@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from orders.models import Order
 from orders.serializers import OrderSerializer
 from orders.services import create_order
+from orders.utils import is_provider_insufficient_funds, notify_admins_insufficient_funds
 from core.models import PlatformSettings
 from .smspool_client import SMSPoolClient, SMSPoolAPIError
 
@@ -221,9 +222,12 @@ def api_numbers_order(request):
         order.status = 'processing'
         order.save()
     except SMSPoolAPIError as e:
-        order.mark_failed(notes=f'SMSPool API error: {str(e)}')
+        error_str = str(e)
+        order.mark_failed(notes=f'SMSPool API error: {error_str}')
+        if is_provider_insufficient_funds(error_str):
+            notify_admins_insufficient_funds('SMSPool', error_str, order.id)
         return Response(
-            {'detail': f'Order failed and has been refunded. Reason: {str(e)}'},
+            {'detail': 'Order failed. Please try again later.'},
             status=502,
         )
 
