@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from users.models import User
+from core.sanitizers import sanitize_text, sanitize_url, sanitize_dict, MAX_SHORT_TEXT, MAX_MEDIUM_TEXT, MAX_URL, MAX_PHONE, MAX_LONG_TEXT
 
 logger = logging.getLogger(__name__)
 from wallet.models import Wallet, Transaction
@@ -287,10 +288,18 @@ def admin_user_detail(request, user_id):
         })
 
     # PATCH — update user fields
-    allowed = ['first_name', 'last_name', 'phone', 'is_verified', 'is_active', 'is_staff']
-    for field in allowed:
-        if field in request.data:
-            setattr(u, field, request.data[field])
+    if 'first_name' in request.data:
+        u.first_name = sanitize_text(request.data['first_name'], max_length=MAX_NAME)
+    if 'last_name' in request.data:
+        u.last_name = sanitize_text(request.data['last_name'], max_length=MAX_NAME)
+    if 'phone' in request.data:
+        u.phone = sanitize_text(request.data['phone'], max_length=MAX_PHONE)
+    if 'is_verified' in request.data:
+        u.is_verified = request.data['is_verified']
+    if 'is_active' in request.data:
+        u.is_active = request.data['is_active']
+    if 'is_staff' in request.data:
+        u.is_staff = request.data['is_staff']
     # Staff users are automatically verified
     if u.is_staff and not u.is_verified:
         u.is_verified = True
@@ -396,16 +405,16 @@ def admin_gifts(request):
 
     buying_price_raw = request.data.get('buying_price')
     gift = Gift.objects.create(
-        name=request.data['name'],
-        description=request.data.get('description', ''),
+        name=sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT),
+        description=sanitize_text(request.data.get('description', ''), max_length=MAX_MEDIUM_TEXT),
         price=request.data['price'],
         buying_price=buying_price_raw if buying_price_raw not in (None, '') else None,
-        category=request.data['category'],
-        emoji=request.data.get('emoji', ''),
-        color=request.data.get('color', ''),
-        image_url=request.data.get('image_url', ''),
+        category=sanitize_text(request.data['category'], max_length=MAX_SHORT_TEXT),
+        emoji=sanitize_text(request.data.get('emoji', ''), max_length=10),
+        color=sanitize_text(request.data.get('color', ''), max_length=20),
+        image_url=sanitize_url(request.data.get('image_url', ''), max_length=MAX_URL),
         delivery_days=request.data.get('delivery_days', 3),
-        notes=request.data.get('notes', ''),
+        notes=sanitize_text(request.data.get('notes', ''), max_length=MAX_MEDIUM_TEXT),
         rating=request.data.get('rating', 4.5),
         is_active=request.data.get('is_active', True),
     )
@@ -441,11 +450,28 @@ def admin_gift_detail(request, gift_id):
         })
 
     if request.method == 'PATCH':
-        allowed = ['name', 'description', 'price', 'category', 'emoji', 'color',
-                    'image_url', 'delivery_days', 'notes', 'rating', 'is_active']
-        for field in allowed:
-            if field in request.data:
-                setattr(gift, field, request.data[field])
+        if 'name' in request.data:
+            gift.name = sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT)
+        if 'description' in request.data:
+            gift.description = sanitize_text(request.data['description'], max_length=MAX_MEDIUM_TEXT)
+        if 'price' in request.data:
+            gift.price = request.data['price']
+        if 'category' in request.data:
+            gift.category = sanitize_text(request.data['category'], max_length=MAX_SHORT_TEXT)
+        if 'emoji' in request.data:
+            gift.emoji = sanitize_text(request.data['emoji'], max_length=10)
+        if 'color' in request.data:
+            gift.color = sanitize_text(request.data['color'], max_length=20)
+        if 'image_url' in request.data:
+            gift.image_url = sanitize_url(request.data['image_url'], max_length=MAX_URL)
+        if 'delivery_days' in request.data:
+            gift.delivery_days = request.data['delivery_days']
+        if 'notes' in request.data:
+            gift.notes = sanitize_text(request.data['notes'], max_length=MAX_MEDIUM_TEXT)
+        if 'rating' in request.data:
+            gift.rating = request.data['rating']
+        if 'is_active' in request.data:
+            gift.is_active = request.data['is_active']
         if 'buying_price' in request.data:
             raw = request.data['buying_price']
             gift.buying_price = raw if raw not in (None, '') else None
@@ -485,9 +511,9 @@ def admin_boosting_services(request):
             return Response({'detail': f'{field} is required.'}, status=400)
 
     svc = BoostingService.objects.create(
-        name=request.data['name'],
-        platform=request.data['platform'],
-        category=request.data['category'],
+        name=sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT),
+        platform=sanitize_text(request.data['platform'], max_length=MAX_SHORT_TEXT),
+        category=sanitize_text(request.data['category'], max_length=MAX_SHORT_TEXT),
         price_per_k=request.data['price_per_k'],
         min_quantity=request.data.get('min_quantity', 100),
         max_quantity=request.data.get('max_quantity', 100000),
@@ -517,10 +543,20 @@ def admin_boosting_service_detail(request, service_id):
         })
 
     if request.method == 'PATCH':
-        allowed = ['name', 'platform', 'category', 'price_per_k', 'min_quantity', 'max_quantity', 'is_active']
-        for field in allowed:
-            if field in request.data:
-                setattr(svc, field, request.data[field])
+        if 'name' in request.data:
+            svc.name = sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT)
+        if 'platform' in request.data:
+            svc.platform = sanitize_text(request.data['platform'], max_length=MAX_SHORT_TEXT)
+        if 'category' in request.data:
+            svc.category = sanitize_text(request.data['category'], max_length=MAX_SHORT_TEXT)
+        if 'price_per_k' in request.data:
+            svc.price_per_k = request.data['price_per_k']
+        if 'min_quantity' in request.data:
+            svc.min_quantity = request.data['min_quantity']
+        if 'max_quantity' in request.data:
+            svc.max_quantity = request.data['max_quantity']
+        if 'is_active' in request.data:
+            svc.is_active = request.data['is_active']
         svc.save()
         return Response({'detail': 'Service updated.'})
 
@@ -578,13 +614,13 @@ def admin_create_order(request):
     from orders.services import create_order as svc_create_order
 
     user_id = request.data.get('user_id')
-    service_type = (request.data.get('service_type') or '').strip()
-    service_name = (request.data.get('service_name') or '').strip()
+    service_type = sanitize_text((request.data.get('service_type') or ''), max_length=30)
+    service_name = sanitize_text((request.data.get('service_name') or ''), max_length=MAX_SHORT_TEXT)
     amount = request.data.get('amount')
     deduct_wallet = request.data.get('deduct_wallet', True)
-    notes = (request.data.get('notes') or '').strip()
-    initial_status = (request.data.get('status') or 'pending').strip()
-    result = (request.data.get('result') or '').strip()
+    notes = sanitize_text((request.data.get('notes') or ''), max_length=MAX_MEDIUM_TEXT)
+    initial_status = sanitize_text((request.data.get('status') or 'pending'), max_length=20)
+    result = sanitize_text((request.data.get('result') or ''), max_length=MAX_MEDIUM_TEXT)
 
     if not user_id:
         return Response({'detail': 'user_id is required.'}, status=400)
@@ -666,10 +702,11 @@ def admin_order_update(request, order_id):
         return Response({'detail': 'Order not found.'}, status=404)
 
     new_status = request.data.get('status')
-    notes = request.data.get('notes', '')
+    notes = sanitize_text(request.data.get('notes', ''), max_length=MAX_MEDIUM_TEXT)
 
     if new_status == 'completed':
-        order.mark_completed(result=request.data.get('result', ''))
+        result = sanitize_text(request.data.get('result', ''), max_length=MAX_MEDIUM_TEXT)
+        order.mark_completed(result=result)
     elif new_status == 'failed':
         order.mark_failed(notes=notes)
     elif new_status == 'refunded':
@@ -685,8 +722,8 @@ def admin_order_update(request, order_id):
             order.notes = notes
         # Save tracking info when moving to in_transit
         if new_status == 'in_transit':
-            tracking_code = request.data.get('tracking_code', '')
-            tracking_url = request.data.get('tracking_url', '')
+            tracking_code = sanitize_text(request.data.get('tracking_code', ''), max_length=MAX_SHORT_TEXT)
+            tracking_url = sanitize_url(request.data.get('tracking_url', ''), max_length=MAX_URL)
             if tracking_code:
                 order.tracking_code = tracking_code
             if tracking_url:
@@ -786,9 +823,9 @@ def admin_platform_settings(request):
         for m in methods:
             if not isinstance(m, dict):
                 continue
-            name = str(m.get('name', '')).strip()
-            network = str(m.get('network', '')).strip()
-            address = str(m.get('address', '')).strip()
+            name = sanitize_text(m.get('name', ''), max_length=MAX_SHORT_TEXT)
+            network = sanitize_text(m.get('network', ''), max_length=MAX_SHORT_TEXT)
+            address = sanitize_text(m.get('address', ''), max_length=MAX_SHORT_TEXT)
             if not name or not address:
                 continue
             cleaned.append({
@@ -884,14 +921,17 @@ def admin_accounts(request):
             return Response({'detail': f'{field} is required.'}, status=400)
 
     buying_price_raw = request.data.get('buying_price')
+    required_fields = request.data.get('required_fields', [])
+    if required_fields and isinstance(required_fields, list):
+        required_fields = [sanitize_text(str(f), max_length=MAX_SHORT_TEXT) for f in required_fields]
     account = SocialMediaAccount.objects.create(
-        platform=request.data['platform'],
-        service_name=request.data['service_name'],
-        description=request.data.get('description', ''),
+        platform=sanitize_text(request.data['platform'], max_length=MAX_SHORT_TEXT),
+        service_name=sanitize_text(request.data['service_name'], max_length=MAX_SHORT_TEXT),
+        description=sanitize_text(request.data.get('description', ''), max_length=MAX_MEDIUM_TEXT),
         price=request.data['price'],
         buying_price=buying_price_raw if buying_price_raw not in (None, '') else None,
-        notes=request.data.get('notes', ''),
-        required_fields=request.data.get('required_fields', []),
+        notes=sanitize_text(request.data.get('notes', ''), max_length=MAX_MEDIUM_TEXT),
+        required_fields=required_fields or [],
         is_active=request.data.get('is_active', True),
     )
     return Response({'id': account.id, 'detail': 'Account created.'}, status=201)
@@ -919,10 +959,24 @@ def admin_account_detail(request, account_id):
         })
 
     if request.method == 'PATCH':
-        allowed = ['platform', 'service_name', 'description', 'price', 'notes', 'required_fields', 'is_active']
-        for field in allowed:
-            if field in request.data:
-                setattr(account, field, request.data[field])
+        if 'platform' in request.data:
+            account.platform = sanitize_text(request.data['platform'], max_length=MAX_SHORT_TEXT)
+        if 'service_name' in request.data:
+            account.service_name = sanitize_text(request.data['service_name'], max_length=MAX_SHORT_TEXT)
+        if 'description' in request.data:
+            account.description = sanitize_text(request.data['description'], max_length=MAX_MEDIUM_TEXT)
+        if 'price' in request.data:
+            account.price = request.data['price']
+        if 'notes' in request.data:
+            account.notes = sanitize_text(request.data['notes'], max_length=MAX_MEDIUM_TEXT)
+        if 'required_fields' in request.data:
+            rf = request.data['required_fields']
+            if rf and isinstance(rf, list):
+                account.required_fields = [sanitize_text(str(f), max_length=MAX_SHORT_TEXT) for f in rf]
+            else:
+                account.required_fields = []
+        if 'is_active' in request.data:
+            account.is_active = request.data['is_active']
         if 'buying_price' in request.data:
             raw = request.data['buying_price']
             account.buying_price = raw if raw not in (None, '') else None
@@ -964,13 +1018,13 @@ def admin_webdev(request):
             return Response({'detail': f'{field} is required.'}, status=400)
 
     item = WebDevPortfolio.objects.create(
-        title=request.data['title'],
-        description=request.data.get('description', ''),
-        video_url=request.data.get('video_url', ''),
-        website_url=request.data.get('website_url', ''),
-        image_url=request.data.get('image_url', ''),
+        title=sanitize_text(request.data['title'], max_length=MAX_SHORT_TEXT),
+        description=sanitize_text(request.data.get('description', ''), max_length=MAX_MEDIUM_TEXT),
+        video_url=sanitize_url(request.data.get('video_url', ''), max_length=MAX_URL),
+        website_url=sanitize_url(request.data.get('website_url', ''), max_length=MAX_URL),
+        image_url=sanitize_url(request.data.get('image_url', ''), max_length=MAX_URL),
         price=request.data['price'],
-        category=request.data.get('category', ''),
+        category=sanitize_text(request.data.get('category', ''), max_length=MAX_SHORT_TEXT),
         is_active=request.data.get('is_active', True),
     )
     return Response({'id': item.id, 'detail': 'Portfolio item created.'}, status=201)
@@ -998,11 +1052,22 @@ def admin_webdev_detail(request, item_id):
         })
 
     if request.method == 'PATCH':
-        allowed = ['title', 'description', 'video_url', 'website_url', 'image_url',
-                    'price', 'category', 'is_active']
-        for field in allowed:
-            if field in request.data:
-                setattr(item, field, request.data[field])
+        if 'title' in request.data:
+            item.title = sanitize_text(request.data['title'], max_length=MAX_SHORT_TEXT)
+        if 'description' in request.data:
+            item.description = sanitize_text(request.data['description'], max_length=MAX_MEDIUM_TEXT)
+        if 'video_url' in request.data:
+            item.video_url = sanitize_url(request.data['video_url'], max_length=MAX_URL)
+        if 'website_url' in request.data:
+            item.website_url = sanitize_url(request.data['website_url'], max_length=MAX_URL)
+        if 'image_url' in request.data:
+            item.image_url = sanitize_url(request.data['image_url'], max_length=MAX_URL)
+        if 'price' in request.data:
+            item.price = request.data['price']
+        if 'category' in request.data:
+            item.category = sanitize_text(request.data['category'], max_length=MAX_SHORT_TEXT)
+        if 'is_active' in request.data:
+            item.is_active = request.data['is_active']
         item.save()
         return Response({'detail': 'Portfolio item updated.'})
 
@@ -1026,8 +1091,8 @@ def admin_send_email(request):
       recipient_type: 'all' | 'selected'
       user_ids: list[int]  (required when recipient_type='selected')
     """
-    subject = request.data.get('subject', '').strip()
-    html_body = request.data.get('html_body', '').strip()
+    subject = sanitize_text(request.data.get('subject', ''), max_length=MAX_SHORT_TEXT)
+    html_body = request.data.get('html_body', '').strip()  # Admin-curated HTML content; kept as-is
     recipient_type = request.data.get('recipient_type', 'selected')
     user_ids = request.data.get('user_ids', [])
 
@@ -1194,7 +1259,7 @@ def admin_crypto_deposit_action(request, deposit_id):
         return Response({'detail': f'Deposit is already {dep.status}.'}, status=400)
 
     action = request.data.get('action')  # 'confirm' or 'reject'
-    admin_note = (request.data.get('admin_note') or '').strip()
+    admin_note = sanitize_text((request.data.get('admin_note') or ''), max_length=MAX_MEDIUM_TEXT)
 
     if action == 'confirm':
         dep.status = 'completed'
@@ -1259,7 +1324,7 @@ def admin_banned_ips(request):
 
     # POST — ban an IP
     ip = (request.data.get('ip_address') or '').strip()
-    reason = (request.data.get('reason') or '').strip()
+    reason = sanitize_text((request.data.get('reason') or ''), max_length=MAX_MEDIUM_TEXT)
     if not ip:
         return Response({'detail': 'ip_address is required.'}, status=400)
 
@@ -1568,8 +1633,8 @@ def admin_announcements(request):
         return Response(data)
 
     # POST — create new announcement
-    title = str(request.data.get('title', '')).strip()
-    body = str(request.data.get('body', '')).strip()
+    title = sanitize_text(request.data.get('title', ''), max_length=MAX_SHORT_TEXT)
+    body = sanitize_text(request.data.get('body', ''), max_length=MAX_LONG_TEXT)
     if not title or not body:
         return Response({'detail': 'title and body are required.'}, status=400)
 
@@ -1604,9 +1669,9 @@ def admin_announcement_detail(request, announcement_id):
 
     # PATCH
     if 'title' in request.data:
-        announcement.title = str(request.data['title']).strip()
+        announcement.title = sanitize_text(request.data['title'], max_length=MAX_SHORT_TEXT)
     if 'body' in request.data:
-        announcement.body = str(request.data['body']).strip()
+        announcement.body = sanitize_text(request.data['body'], max_length=MAX_LONG_TEXT)
     if 'is_active' in request.data:
         announcement.is_active = bool(request.data['is_active'])
     announcement.save()

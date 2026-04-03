@@ -9,6 +9,7 @@ from orders.serializers import OrderSerializer
 from orders.services import create_order
 from orders.utils import is_provider_insufficient_funds, notify_admins_insufficient_funds
 from core.models import PlatformSettings
+from core.sanitizers import sanitize_text, MAX_SHORT_TEXT
 from .smspool_client import SMSPoolClient, SMSPoolAPIError
 
 
@@ -171,9 +172,9 @@ def api_numbers_order(request):
     """Purchase an SMS verification number."""
     country = request.data.get('country')
     service = request.data.get('service')
-    service_name = request.data.get('service_name', 'SMS Verification')
-    country_name = request.data.get('country_name', '')
-    country_short_name = request.data.get('country_short_name', '')
+    service_name = sanitize_text(request.data.get('service_name', 'SMS Verification'), max_length=MAX_SHORT_TEXT)
+    country_name = sanitize_text(request.data.get('country_name', ''), max_length=MAX_SHORT_TEXT)
+    country_short_name = sanitize_text(request.data.get('country_short_name', ''), max_length=10)
     dial_code = request.data.get('dial_code', '') or DIAL_CODES.get(country_short_name.upper(), '')
 
     if not country or not service:

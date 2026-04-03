@@ -48,6 +48,8 @@ def admin_tickets(request):
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def admin_ticket_update(request, ticket_id):
+    from core.sanitizers import sanitize_text, MAX_LONG_TEXT
+
     try:
         ticket = Ticket.objects.get(pk=ticket_id)
     except Ticket.DoesNotExist:
@@ -59,7 +61,7 @@ def admin_ticket_update(request, ticket_id):
     if status and status in dict(Ticket.STATUS_CHOICES):
         ticket.status = status
     if admin_response is not None:
-        ticket.admin_response = admin_response
+        ticket.admin_response = sanitize_text(admin_response, max_length=MAX_LONG_TEXT)
 
     ticket.save()
     return Response(TicketSerializer(ticket).data)
