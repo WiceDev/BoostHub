@@ -79,7 +79,7 @@ def api_verify_deposit(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if Transaction.objects.filter(reference=reference).exists():
+    if Transaction.objects.filter(reference=reference, wallet__user=request.user).exists():
         return Response(
             {'detail': 'This payment has already been processed.'},
             status=status.HTTP_409_CONFLICT,

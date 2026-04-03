@@ -32,12 +32,12 @@ def paystack_webhook(request):
             amount_naira = amount_kobo / 100
             email = data['customer']['email']
             # Skip if already processed
-            if Transaction.objects.filter(reference=reference).exists():
-                return HttpResponse(status=200)
             from django.contrib.auth import get_user_model
             User = get_user_model()
             try:
                 user = User.objects.select_related('referred_by', 'wallet').get(email=email)
+                if Transaction.objects.filter(reference=reference, wallet=user.wallet).exists():
+                    return HttpResponse(status=200)
                 user.wallet.credit(
                     amount=amount_naira,
                     description='Wallet deposit via Paystack (webhook)',
