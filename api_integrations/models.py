@@ -35,6 +35,22 @@ class APICallLog(models.Model):
         return f"[{self.provider.upper()}] {self.action} — {status} ({self.created_at:%Y-%m-%d %H:%M})"
 
 
+class UserPurchaseLog(APICallLog):
+    """Proxy model for user purchase API logs."""
+    class Meta:
+        proxy = True
+        verbose_name = 'User Purchase Log'
+        verbose_name_plural = 'User Purchase Logs'
+
+
+class CeleryTaskLog(APICallLog):
+    """Proxy model for Celery background task API logs."""
+    class Meta:
+        proxy = True
+        verbose_name = 'Celery Task Log'
+        verbose_name_plural = 'Celery Task Logs'
+
+
 class BoostingServiceSnapshot(models.Model):
     """Boosting services synced from RSS SMM panel. Admin controls which are visible to users."""
     external_id = models.IntegerField(unique=True, db_index=True)
