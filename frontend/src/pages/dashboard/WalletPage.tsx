@@ -661,7 +661,7 @@ const WalletPage = () => {
                   <span className="text-sm font-medium">Email Support</span>
                 </div>
                 <p className="text-xs text-muted-foreground">Send us an email and we'll respond within 24 hours.</p>
-                <a href="mailto:support@priveboost.com">
+                <a href="mailto:help@priveboost.com">
                   <Button size="sm" variant="outline" className="w-full mt-1">Send Email</Button>
                 </a>
               </div>

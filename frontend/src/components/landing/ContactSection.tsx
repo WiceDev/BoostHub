@@ -22,7 +22,7 @@ const ContactSection = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Email Us</h3>
-                <p className="text-sm text-muted-foreground">support@priveboost.com</p>
+                <p className="text-sm text-muted-foreground">help@priveboost.com</p>
               </div>
             </div>
 

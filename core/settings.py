@@ -4,7 +4,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.ngrok-free.app,.ngrok-free.dev,.railway.app,.up.railway.app').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,priveboost.com,www.priveboost.com,.ngrok-free.app,.ngrok-free.dev').split(',')
 
 # Applications
 DJANGO_APPS = [
@@ -134,14 +134,14 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 3000,  # every 50 minutes
     },
 }
-# Email — uses SMTP if configured, otherwise falls back to console
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+# Email — Zoho Mail SMTP (falls back to console in dev)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtppro.zoho.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='help@priveboost.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@wiceplatform.com')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='PriveBoost <help@priveboost.com>')
 KORAPAY_SECRET_KEY = config('KORAPAY_SECRET_KEY', default='')
 KORAPAY_PUBLIC_KEY = config('KORAPAY_PUBLIC_KEY', default='')
 KORAPAY_ENCRYPTION_KEY = config('KORAPAY_ENCRYPTION_KEY', default='')
@@ -149,7 +149,8 @@ REAL_SIMPLE_SOCIAL_API_KEY = config('REAL_SIMPLE_SOCIAL_API_KEY', default='')
 SMS_POOL_API_KEY = config('SMS_POOL_API_KEY', default='')
 RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
 RSS_USD_TO_NGN = 1600
-PLATFORM_NAME = 'WicePlatform'
+PLATFORM_NAME = 'PriveBoost'
+FRONTEND_URL = config('FRONTEND_URL', default='https://www.priveboost.com')
 PLATFORM_CURRENCY = 'NGN'
 PLATFORM_WHATSAPP = config('PLATFORM_WHATSAPP', default='+2348000000000')
 AUTH_USER_MODEL = 'users.User'
@@ -158,10 +159,10 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8082',
     'http://127.0.0.1:8080',
     'http://127.0.0.1:8082',
+    'https://priveboost.com',
+    'https://www.priveboost.com',
     'https://*.ngrok-free.app',
     'https://*.ngrok-free.dev',
-    'https://*.railway.app',
-    'https://*.up.railway.app',
 ] + [o for o in config('EXTRA_TRUSTED_ORIGINS', default='').split(',') if o]
 
 # Django REST Framework
@@ -174,8 +175,10 @@ REST_FRAMEWORK = {
     ],
 }
 
-# CORS (allow React dev server + ngrok tunnels)
+# CORS (allow production domain + React dev server + ngrok tunnels)
 CORS_ALLOWED_ORIGINS = [
+    'https://priveboost.com',
+    'https://www.priveboost.com',
     'http://localhost:8080',
     'http://localhost:8082',
     'http://127.0.0.1:8080',
@@ -204,7 +207,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-    # Secure cookies (HTTPS enforced at Railway/reverse-proxy level, not here —
+    # Secure cookies (HTTPS enforced at reverse-proxy/Nginx level, not here —
     # SECURE_SSL_REDIRECT breaks internal healthchecks that hit HTTP directly)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
