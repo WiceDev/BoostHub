@@ -177,7 +177,7 @@ def api_referral_stats(request):
     # Build referral link using FRONTEND_URL setting or a safe fallback
     frontend_url = getattr(django_settings, 'FRONTEND_URL', '').rstrip('/')
     if not frontend_url:
-        frontend_url = 'https://boosthub.com'
+        frontend_url = 'https://priveboost.com'
 
     return Response({
         'referral_code': user.referral_code,

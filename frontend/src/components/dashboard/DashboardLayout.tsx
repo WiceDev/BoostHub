@@ -205,7 +205,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         {sidebarOpen && (
           <div>
             <span className="text-[15px] font-bold text-foreground tracking-tight">
-              {isAdminRoute ? "BoostHub" : "BoostHub"}
+              {isAdminRoute ? "PriveBoost" : "PriveBoost"}
             </span>
             <p className="text-[10px] text-muted-foreground -mt-0.5">
               {isAdminRoute ? "Admin Panel" : "SMM Panel"}

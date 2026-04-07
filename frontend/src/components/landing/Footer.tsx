@@ -11,7 +11,7 @@ const Footer = () => {
               <div className="h-8 w-8 rounded-lg gradient-blue flex items-center justify-center">
                 <Zap className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="text-lg font-bold text-background">BoostHub</span>
+              <span className="text-lg font-bold text-background">PriveBoost</span>
             </div>
             <p className="text-sm leading-relaxed">
               The all-in-one platform for social media growth and digital services.
@@ -47,7 +47,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-background/10 pt-8 text-center text-sm">
-          © {new Date().getFullYear()} BoostHub. All rights reserved.
+          © {new Date().getFullYear()} PriveBoost. All rights reserved.
         </div>
       </div>
     </footer>

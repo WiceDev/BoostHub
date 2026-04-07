@@ -58,7 +58,7 @@ const ResetPassword = () => {
             <div className="h-10 w-10 rounded-xl gradient-blue flex items-center justify-center">
               <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold text-foreground">BoostHub</span>
+            <span className="text-2xl font-bold text-foreground">PriveBoost</span>
           </Link>
           <h1 className="text-2xl font-bold text-foreground">Choose a new password</h1>
           <p className="text-muted-foreground mt-1">Make it strong and memorable</p>

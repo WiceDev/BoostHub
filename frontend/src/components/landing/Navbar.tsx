@@ -95,7 +95,7 @@ const Navbar = () => {
           <div className="h-8 w-8 rounded-lg gradient-blue flex items-center justify-center">
             <Zap className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-foreground">BoostHub</span>
+          <span className="text-xl font-bold text-foreground">PriveBoost</span>
         </Link>
 
         {/* Desktop */}

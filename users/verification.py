@@ -46,7 +46,7 @@ def send_verification_email(user, request=None):
     })
 
     email = EmailMessage(
-        subject="Verify your email — BoostHub",
+        subject="Verify your email — PriveBoost",
         body=html_body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],
@@ -66,7 +66,7 @@ def send_welcome_email(user):
     })
 
     email = EmailMessage(
-        subject="Welcome to BoostHub 🎉 — You're all set!",
+        subject="Welcome to PriveBoost 🎉 — You're all set!",
         body=html_body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[user.email],

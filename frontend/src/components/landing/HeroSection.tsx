@@ -81,10 +81,10 @@ const HeroSection = () => {
           <div className="max-w-3xl mx-auto text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">About Us</h2>
             <p className="text-lg text-muted-foreground leading-relaxed mb-4">
-              Unlock the power of established social media presence with BoostHub.
+              Unlock the power of established social media presence with PriveBoost.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              In today's digital age, social media has become an indispensable tool for individuals, businesses, and influencers alike to connect, engage, and grow their online presence. However, building a strong following and establishing credibility on social media platforms can be a time-consuming and challenging endeavor. That's where BoostHub comes in — your ultimate destination to unlock the power of established social media presence.
+              In today's digital age, social media has become an indispensable tool for individuals, businesses, and influencers alike to connect, engage, and grow their online presence. However, building a strong following and establishing credibility on social media platforms can be a time-consuming and challenging endeavor. That's where PriveBoost comes in — your ultimate destination to unlock the power of established social media presence.
             </p>
           </div>
 
