@@ -216,8 +216,8 @@ export function fetchTransactions() {
   return request<Transaction[]>('/wallet/transactions/');
 }
 
-export function depositPaystack(amount: number, callback_url?: string) {
-  return request<{ authorization_url: string; reference: string }>('/wallet/deposit/', {
+export function depositKorapay(amount: number, callback_url?: string) {
+  return request<{ checkout_url: string; reference: string }>('/wallet/deposit/', {
     method: 'POST',
     body: JSON.stringify({ amount, callback_url }),
   });
@@ -717,8 +717,9 @@ export interface PlatformSettings {
   crypto_usd_rate: string;
   crypto_methods: CryptoMethod[];
   api_keys: {
-    paystack_secret: ApiKeyInfo;
-    paystack_public: ApiKeyInfo;
+    korapay_secret: ApiKeyInfo;
+    korapay_public: ApiKeyInfo;
+    korapay_encryption: ApiKeyInfo;
     rss_api_key: ApiKeyInfo;
     smspool_api_key: ApiKeyInfo;
   };

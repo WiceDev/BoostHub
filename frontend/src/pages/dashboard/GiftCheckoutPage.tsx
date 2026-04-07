@@ -240,8 +240,8 @@ const GiftCheckoutPage = () => {
     setLoading(false);
   }
 
-  async function handlePaystackFromDialog() {
-    // User chose Paystack from wallet dialog — save to cart in case payment takes time
+  async function handleDepositRedirect() {
+    // User chose to add funds — save to cart in case payment takes time
     setWalletDialogOpen(false);
     saveToCart();
     toast.info("Gift saved to cart. Redirecting to deposit...", { duration: 3000 });
@@ -579,7 +579,7 @@ const GiftCheckoutPage = () => {
             </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button variant="outline" onClick={handlePaystackFromDialog} disabled={loading}>
+            <Button variant="outline" onClick={handleDepositRedirect} disabled={loading}>
               No, Add Funds Instead
             </Button>
             <Button onClick={handleWalletPay} disabled={loading} className="shadow-blue">

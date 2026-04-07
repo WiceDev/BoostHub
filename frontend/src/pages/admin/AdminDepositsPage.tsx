@@ -6,13 +6,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAdminDeposits, fetchAdminCryptoDeposits, actionAdminCryptoDeposit, type AdminDeposit, type AdminCryptoDeposit } from "@/lib/api";
 
 const methodIcon = (method: string) => {
-  if (method === "Paystack") return <CreditCard className="h-3.5 w-3.5 text-blue-400" />;
+  if (method === "Korapay") return <CreditCard className="h-3.5 w-3.5 text-blue-400" />;
   if (method === "Crypto") return <Bitcoin className="h-3.5 w-3.5 text-orange-400" />;
   return <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />;
 };
 
 const methodColor = (method: string) => {
-  if (method === "Paystack") return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+  if (method === "Korapay") return "bg-blue-500/10 text-blue-400 border-blue-500/20";
   if (method === "Crypto")   return "bg-orange-500/10 text-orange-400 border-orange-500/20";
   return "bg-muted text-muted-foreground border-border";
 };
@@ -99,11 +99,11 @@ const AdminDepositsPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            label: "Paystack",
+            label: "Korapay",
             icon: <CreditCard className="h-5 w-5 text-blue-400" />,
             bg: "bg-blue-500/10",
-            count: deposits.filter((d) => d.method === "Paystack").length,
-            total: deposits.filter((d) => d.method === "Paystack").reduce((s, d) => s + parseFloat(d.amount), 0),
+            count: deposits.filter((d) => d.method === "Korapay").length,
+            total: deposits.filter((d) => d.method === "Korapay").reduce((s, d) => s + parseFloat(d.amount), 0),
           },
           {
             label: "Crypto",
@@ -116,8 +116,8 @@ const AdminDepositsPage = () => {
             label: "Manual / Admin",
             icon: <UserCircle className="h-5 w-5 text-muted-foreground" />,
             bg: "bg-muted/30",
-            count: deposits.filter((d) => d.method !== "Paystack" && d.method !== "Crypto").length,
-            total: deposits.filter((d) => d.method !== "Paystack" && d.method !== "Crypto").reduce((s, d) => s + parseFloat(d.amount), 0),
+            count: deposits.filter((d) => d.method !== "Korapay" && d.method !== "Crypto").length,
+            total: deposits.filter((d) => d.method !== "Korapay" && d.method !== "Crypto").reduce((s, d) => s + parseFloat(d.amount), 0),
           },
         ].map((item) => (
           <div key={item.label} className="glass-card p-5 flex items-center gap-4">

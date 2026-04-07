@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Transaction, CryptoDeposit
 from .serializers import WalletSerializer, TransactionSerializer
-from .paystack import initialize_payment
+from .korapay import initialize_checkout
 
 
 @api_view(['GET'])
@@ -23,8 +23,8 @@ def api_transactions(request):
 
 
 @api_view(['POST'])
-def api_deposit_paystack(request):
-    """Initiate a Paystack payment and return the authorization URL."""
+def api_deposit_korapay(request):
+    """Initiate a Korapay checkout and return the checkout URL."""
     try:
         amount = float(request.data.get('amount', 0))
     except (ValueError, TypeError):
@@ -42,22 +42,26 @@ def api_deposit_paystack(request):
     from core.sanitizers import sanitize_url
 
     reference = f"DEP-{uuid.uuid4().hex[:12].upper()}"
-    # Build callback URL pointing to the React frontend
-    default_callback = request.build_absolute_uri('/wallet/verify/') + f'?reference={reference}'
-    callback_url = sanitize_url(
-        request.data.get('callback_url', default_callback)
-    ) or default_callback
+    # Build redirect URL pointing to the React frontend deposit page
+    default_redirect = request.build_absolute_uri('/dashboard/deposit') + f'?verify=true&reference={reference}'
+    redirect_url = sanitize_url(
+        request.data.get('callback_url', default_redirect)
+    ) or default_redirect
 
-    result = initialize_payment(
-        email=request.user.email,
-        amount_naira=amount,
+    user = request.user
+    customer_name = f"{user.first_name or ''} {user.last_name or ''}".strip() or user.email.split('@')[0]
+
+    result = initialize_checkout(
         reference=reference,
-        callback_url=callback_url,
+        amount_naira=amount,
+        customer_email=user.email,
+        customer_name=customer_name,
+        redirect_url=redirect_url,
     )
 
-    if result.get('status'):
+    if result.get('status') and result.get('data', {}).get('checkout_url'):
         return Response({
-            'authorization_url': result['data']['authorization_url'],
+            'checkout_url': result['data']['checkout_url'],
             'reference': reference,
         })
     else:
@@ -69,8 +73,8 @@ def api_deposit_paystack(request):
 
 @api_view(['GET'])
 def api_verify_deposit(request):
-    """Verify a Paystack payment after redirect and return updated wallet."""
-    from .paystack import verify_payment
+    """Verify a Korapay payment after redirect and return updated wallet."""
+    from .korapay import verify_charge
 
     reference = request.query_params.get('reference')
     if not reference:
@@ -85,14 +89,13 @@ def api_verify_deposit(request):
             status=status.HTTP_409_CONFLICT,
         )
 
-    result = verify_payment(reference)
-    if result.get('status') and result['data']['status'] == 'success':
-        amount_kobo = result['data']['amount']
-        amount_naira = amount_kobo / 100
+    result = verify_charge(reference)
+    if result.get('status') and result.get('data', {}).get('status') == 'success':
+        amount_naira = float(result['data']['amount'])
         wallet = request.user.wallet
         wallet.credit(
             amount=amount_naira,
-            description='Wallet deposit via Paystack',
+            description='Wallet deposit via Korapay',
             reference=reference,
         )
         return Response({

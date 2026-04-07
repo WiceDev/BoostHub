@@ -114,12 +114,13 @@ const AdminSettingsPage = () => {
   const [savingCrypto, setSavingCrypto] = useState(false);
 
   // API key management
-  type ApiKeySlot = 'paystack_secret' | 'paystack_public' | 'rss_api_key' | 'smspool_api_key';
+  type ApiKeySlot = 'korapay_secret' | 'korapay_public' | 'korapay_encryption' | 'rss_api_key' | 'smspool_api_key';
   const [apiKeyInfo, setApiKeyInfo] = useState<Record<ApiKeySlot, ApiKeyInfo>>({
-    paystack_secret: { masked: null, source: 'not_set' },
-    paystack_public: { masked: null, source: 'not_set' },
-    rss_api_key:     { masked: null, source: 'not_set' },
-    smspool_api_key: { masked: null, source: 'not_set' },
+    korapay_secret:     { masked: null, source: 'not_set' },
+    korapay_public:     { masked: null, source: 'not_set' },
+    korapay_encryption: { masked: null, source: 'not_set' },
+    rss_api_key:        { masked: null, source: 'not_set' },
+    smspool_api_key:    { masked: null, source: 'not_set' },
   });
   const [editingKey, setEditingKey] = useState<ApiKeySlot | null>(null);
   const [keyInput, setKeyInput] = useState("");
@@ -235,10 +236,11 @@ const AdminSettingsPage = () => {
   };
 
   const KEY_META: Record<ApiKeySlot, { label: string; hint: string; color: string }> = {
-    paystack_secret:  { label: "Paystack Secret Key",    hint: "sk_live_... or sk_test_...", color: "text-blue-500 bg-blue-500/10" },
-    paystack_public:  { label: "Paystack Public Key",    hint: "pk_live_... or pk_test_...", color: "text-indigo-500 bg-indigo-500/10" },
-    rss_api_key:      { label: "RSS SMM Panel API Key",  hint: "From reallysimplesocial.com", color: "text-emerald-500 bg-emerald-500/10" },
-    smspool_api_key:  { label: "SMSPool API Key",        hint: "From smspool.net",            color: "text-orange-500 bg-orange-500/10" },
+    korapay_secret:     { label: "Korapay Secret Key",     hint: "sk_live_... or sk_test_...",    color: "text-blue-500 bg-blue-500/10" },
+    korapay_public:     { label: "Korapay Public Key",     hint: "pk_live_... or pk_test_...",    color: "text-indigo-500 bg-indigo-500/10" },
+    korapay_encryption: { label: "Korapay Encryption Key", hint: "From Korapay API dashboard",   color: "text-violet-500 bg-violet-500/10" },
+    rss_api_key:        { label: "RSS SMM Panel API Key",  hint: "From reallysimplesocial.com",  color: "text-emerald-500 bg-emerald-500/10" },
+    smspool_api_key:    { label: "SMSPool API Key",        hint: "From smspool.net",             color: "text-orange-500 bg-orange-500/10" },
   };
 
   return (

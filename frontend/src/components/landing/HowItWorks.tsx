@@ -18,9 +18,9 @@ const steps = [
     icon: Wallet,
     step: "02",
     title: "Fund Your Wallet",
-    description: "Add funds to your wallet using Paystack for instant Naira deposits, or use cryptocurrency for international payments. Your balance is always ready to spend.",
+    description: "Add funds to your wallet using Korapay for instant Naira deposits, or use cryptocurrency for international payments. Your balance is always ready to spend.",
     details: [
-      "Paystack instant deposits",
+      "Korapay instant deposits",
       "Crypto payment support",
       "Real-time balance updates",
     ],

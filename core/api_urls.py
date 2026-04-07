@@ -10,7 +10,7 @@ from users.api_views import (
     api_2fa_setup, api_2fa_enable, api_2fa_disable, api_2fa_verify_login,
 )
 from wallet.api_views import (
-    api_wallet, api_transactions, api_deposit_paystack, api_verify_deposit,
+    api_wallet, api_transactions, api_deposit_korapay, api_verify_deposit,
     api_submit_crypto_deposit, api_my_crypto_deposits,
 )
 from orders.api_views import api_orders, api_order_detail, api_dashboard_stats, api_place_gift_order
@@ -85,7 +85,7 @@ urlpatterns = [
     # Wallet
     path('wallet/', api_wallet, name='api_wallet'),
     path('wallet/transactions/', api_transactions, name='api_transactions'),
-    path('wallet/deposit/', api_deposit_paystack, name='api_deposit_paystack'),
+    path('wallet/deposit/', api_deposit_korapay, name='api_deposit_korapay'),
     path('wallet/verify/', api_verify_deposit, name='api_verify_deposit'),
     path('wallet/crypto-deposit/', api_submit_crypto_deposit, name='api_submit_crypto_deposit'),
     path('wallet/crypto-deposits/', api_my_crypto_deposits, name='api_my_crypto_deposits'),

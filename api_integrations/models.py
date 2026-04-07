@@ -2,11 +2,11 @@ from django.db import models
 
 
 class APICallLog(models.Model):
-    """Records every outbound call to external APIs (RSS, SMSPool, Paystack, etc.)."""
+    """Records every outbound call to external APIs (RSS, SMSPool, Korapay, etc.)."""
     PROVIDER_CHOICES = [
         ('rss', 'RSS SMM Panel'),
         ('smspool', 'SMSPool'),
-        ('paystack', 'Paystack'),
+        ('korapay', 'Korapay'),
         ('other', 'Other'),
     ]
 

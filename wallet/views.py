@@ -5,7 +5,7 @@ from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from django.db.models import Sum
 from .models import Transaction
-from .paystack import verify_webhook_signature
+from .korapay import verify_webhook_signature
 
 REFERRAL_DEPOSIT_THRESHOLD = Decimal('10000')
 REFERRAL_BONUS_AMOUNT = Decimal('2000')
@@ -13,12 +13,12 @@ REFERRAL_BONUS_AMOUNT = Decimal('2000')
 
 @csrf_exempt
 @require_POST
-def paystack_webhook(request):
+def korapay_webhook(request):
     """
-    Paystack calls this URL automatically when a payment is made.
-    This is the REAL confirmation - not the redirect.
+    Korapay calls this URL automatically when a payment completes or fails.
+    Webhook signature is verified using HMAC SHA256 of the data object.
     """
-    signature = request.headers.get('X-Paystack-Signature', '')
+    signature = request.headers.get('X-Korapay-Signature', '')
     payload_body = request.body
     if not verify_webhook_signature(payload_body, signature):
         return HttpResponse(status=400)
@@ -28,9 +28,11 @@ def paystack_webhook(request):
         if event == 'charge.success':
             data = payload['data']
             reference = data['reference']
-            amount_kobo = data['amount']
-            amount_naira = amount_kobo / 100
-            email = data['customer']['email']
+            amount_naira = float(data['amount'])
+            # Korapay includes customer email in the data
+            email = data.get('customer', {}).get('email', '')
+            if not email:
+                return HttpResponse(status=200)
             # Skip if already processed
             from django.contrib.auth import get_user_model
             User = get_user_model()
@@ -40,12 +42,10 @@ def paystack_webhook(request):
                     return HttpResponse(status=200)
                 user.wallet.credit(
                     amount=amount_naira,
-                    description='Wallet deposit via Paystack (webhook)',
+                    description='Wallet deposit via Korapay (webhook)',
                     reference=reference
                 )
                 # ── Referral bonus check ──────────────────────────────────
-                # If this user was referred and bonus hasn't been paid yet,
-                # check if their cumulative deposits have now reached ₦10,000.
                 if user.referred_by and not user.referral_bonus_paid:
                     total_deposited = user.wallet.transactions.filter(
                         transaction_type='credit', status='completed'

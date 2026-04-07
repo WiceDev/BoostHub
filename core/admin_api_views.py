@@ -772,10 +772,11 @@ def admin_platform_settings(request):
             'crypto_usd_rate': str(settings_obj.crypto_usd_rate),
             'crypto_methods': settings_obj.crypto_methods or [],
             'api_keys': {
-                'paystack_secret': _key_info(settings_obj.paystack_secret_key, 'PAYSTACK_SECRET_KEY'),
-                'paystack_public': _key_info(settings_obj.paystack_public_key, 'PAYSTACK_PUBLIC_KEY'),
-                'rss_api_key':     _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
-                'smspool_api_key': _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
+                'korapay_secret':     _key_info(settings_obj.korapay_secret_key, 'KORAPAY_SECRET_KEY'),
+                'korapay_public':     _key_info(settings_obj.korapay_public_key, 'KORAPAY_PUBLIC_KEY'),
+                'korapay_encryption': _key_info(settings_obj.korapay_encryption_key, 'KORAPAY_ENCRYPTION_KEY'),
+                'rss_api_key':        _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
+                'smspool_api_key':    _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
             },
         })
 
@@ -838,10 +839,11 @@ def admin_platform_settings(request):
 
     # API key overrides — only update if a non-empty value is supplied
     API_KEY_FIELDS = {
-        'paystack_secret': ('paystack_secret_key', 'paystack_secret_key'),
-        'paystack_public': ('paystack_public_key', 'paystack_public_key'),
-        'rss_api_key':     ('rss_api_key',         'rss_api_key'),
-        'smspool_api_key': ('smspool_api_key',      'smspool_api_key'),
+        'korapay_secret':     ('korapay_secret_key',     'korapay_secret_key'),
+        'korapay_public':     ('korapay_public_key',     'korapay_public_key'),
+        'korapay_encryption': ('korapay_encryption_key', 'korapay_encryption_key'),
+        'rss_api_key':        ('rss_api_key',            'rss_api_key'),
+        'smspool_api_key':    ('smspool_api_key',        'smspool_api_key'),
     }
     api_keys_data = request.data.get('api_keys', {})
     cleared_key_caches = []
@@ -869,10 +871,11 @@ def admin_platform_settings(request):
         'crypto_usd_rate': str(settings_obj.crypto_usd_rate),
         'crypto_methods': settings_obj.crypto_methods or [],
         'api_keys': {
-            'paystack_secret': _key_info(settings_obj.paystack_secret_key, 'PAYSTACK_SECRET_KEY'),
-            'paystack_public': _key_info(settings_obj.paystack_public_key, 'PAYSTACK_PUBLIC_KEY'),
-            'rss_api_key':     _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
-            'smspool_api_key': _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
+            'korapay_secret':     _key_info(settings_obj.korapay_secret_key, 'KORAPAY_SECRET_KEY'),
+            'korapay_public':     _key_info(settings_obj.korapay_public_key, 'KORAPAY_PUBLIC_KEY'),
+            'korapay_encryption': _key_info(settings_obj.korapay_encryption_key, 'KORAPAY_ENCRYPTION_KEY'),
+            'rss_api_key':        _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
+            'smspool_api_key':    _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
         },
     })
 
@@ -1192,8 +1195,8 @@ def admin_deposits(request):
         # Infer deposit method from description / reference
         desc = t.description or ''
         ref = t.reference or ''
-        if 'paystack' in desc.lower() or (ref and not ref.startswith('admin')):
-            method = 'Paystack'
+        if 'korapay' in desc.lower() or (ref and not ref.startswith('admin')):
+            method = 'Korapay'
         elif 'crypto' in desc.lower() or 'bitcoin' in desc.lower() or 'usdt' in desc.lower():
             method = 'Crypto'
         elif 'admin' in desc.lower() or not ref:

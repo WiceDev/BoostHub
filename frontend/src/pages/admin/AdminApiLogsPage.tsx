@@ -36,7 +36,7 @@ const PROVIDERS = [
   { value: "all", label: "All Providers" },
   { value: "rss", label: "RSS SMM Panel" },
   { value: "smspool", label: "SMSPool" },
-  { value: "paystack", label: "Paystack" },
+  { value: "korapay", label: "Korapay" },
   { value: "other", label: "Other" },
 ];
 
@@ -187,7 +187,7 @@ export default function AdminApiLogsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">API Call Logs</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            All outbound calls to external APIs (RSS, SMSPool, Paystack)
+            All outbound calls to external APIs (RSS, SMSPool, Korapay)
           </p>
         </div>
         <div className="flex items-center gap-2">

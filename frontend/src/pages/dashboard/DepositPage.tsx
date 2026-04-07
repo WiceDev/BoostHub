@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  depositPaystack, verifyDeposit, fetchCryptoMethods,
+  depositKorapay, verifyDeposit, fetchCryptoMethods,
   submitCryptoDeposit, fetchMyCryptoDeposits, fetchTransactions,
   ApiError, type CryptoMethod, type CryptoDeposit,
   type CryptoMethodsResponse, type Transaction,
@@ -75,7 +75,7 @@ const DepositPage = () => {
     queryFn: fetchTransactions,
   });
 
-  // Credit transactions = Paystack / admin deposits
+  // Credit transactions = Korapay / admin deposits
   const creditTx = useMemo(
     () => (transactions as Transaction[]).filter((tx) => tx.transaction_type === "credit"),
     [transactions]
@@ -117,15 +117,15 @@ const DepositPage = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handlePaystack = async (e: React.FormEvent) => {
+  const handleKorapay = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount < 100) { toast.error("Minimum deposit is ₦100."); return; }
     setLoading(true);
     try {
       const callbackUrl = `${window.location.origin}/dashboard/deposit?verify=true`;
-      const result = await depositPaystack(numAmount, callbackUrl);
-      window.location.href = result.authorization_url;
+      const result = await depositKorapay(numAmount, callbackUrl);
+      window.location.href = result.checkout_url;
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to initiate payment.");
       setLoading(false);
@@ -176,7 +176,7 @@ const DepositPage = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Add Funds</h1>
-            <p className="text-muted-foreground text-sm">Top up your wallet securely via Paystack</p>
+            <p className="text-muted-foreground text-sm">Top up your wallet securely via Korapay</p>
           </div>
         </div>
       </div>
@@ -202,18 +202,18 @@ const DepositPage = () => {
       {/* Payment section — 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         <div>
-        <Tabs defaultValue="paystack">
+        <Tabs defaultValue="korapay">
           <TabsList className="w-full grid grid-cols-2 mb-6">
-            <TabsTrigger value="paystack" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Paystack
+            <TabsTrigger value="korapay" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" /> Korapay
             </TabsTrigger>
             <TabsTrigger value="crypto" className="flex items-center gap-2">
               <Bitcoin className="h-4 w-4" /> Crypto
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Paystack tab ── */}
-          <TabsContent value="paystack">
+          {/* ── Korapay tab ── */}
+          <TabsContent value="korapay">
             <div className="glass-card p-6 sm:p-8 space-y-6">
               {/* Quick amounts */}
               <div>
@@ -237,7 +237,7 @@ const DepositPage = () => {
                 </div>
               </div>
 
-              <form onSubmit={handlePaystack} className="space-y-5">
+              <form onSubmit={handleKorapay} className="space-y-5">
                 <div className="space-y-2">
                   <Label>Amount (NGN)</Label>
                   <Input
@@ -258,14 +258,14 @@ const DepositPage = () => {
                 <Button className="w-full h-12 shadow-blue text-sm font-semibold" type="submit" disabled={loading}>
                   {loading
                     ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Redirecting...</>
-                    : <><CreditCard className="h-4 w-4 mr-2" />Pay with Paystack</>}
+                    : <><CreditCard className="h-4 w-4 mr-2" />Pay with Korapay</>}
                 </Button>
               </form>
 
               <div className="rounded-xl bg-muted/50 p-3 flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground">
-                  Secured by Paystack. Supports cards, bank transfers, and USSD. Funds reflect instantly.
+                  Secured by Korapay. Supports cards, bank transfers, and more. Funds reflect instantly.
                 </p>
               </div>
             </div>
@@ -282,7 +282,7 @@ const DepositPage = () => {
                 <div className="glass-card p-10 flex flex-col items-center gap-3">
                   <AlertTriangle className="h-10 w-10 text-amber-500/40" />
                   <p className="text-sm text-muted-foreground text-center">
-                    Crypto deposits are not configured yet.<br />Please use Paystack or check back later.
+                    Crypto deposits are not configured yet.<br />Please use Korapay or check back later.
                   </p>
                 </div>
               ) : (
@@ -409,7 +409,7 @@ const DepositPage = () => {
             </div>
             <div className="p-5 space-y-3">
               {[
-                { icon: CheckCircle2, text: "Paystack deposits reflect instantly", color: "text-success" },
+                { icon: CheckCircle2, text: "Korapay deposits reflect instantly", color: "text-success" },
                 { icon: CreditCard, text: "Cards, bank transfer & USSD supported", color: "text-primary" },
                 { icon: Bitcoin, text: "Crypto deposits verified within 30 mins", color: "text-amber-500" },
                 { icon: CheckCircle2, text: "256-bit SSL encrypted transactions", color: "text-success" },
@@ -427,7 +427,7 @@ const DepositPage = () => {
             <p className="text-sm font-semibold text-foreground">Deposit Limits</p>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Minimum (Paystack)</span>
+                <span className="text-sm text-muted-foreground">Minimum (Korapay)</span>
                 <span className="text-sm font-bold text-foreground">₦100</span>
               </div>
               <div className="flex items-center justify-between">
@@ -468,7 +468,7 @@ const DepositPage = () => {
           <>
             {/* Mobile card list */}
             <div className="lg:hidden divide-y divide-border/30">
-              {/* Paystack / wallet credit transactions */}
+              {/* Korapay / wallet credit transactions */}
               {creditTx.map((tx) => (
                 <div key={`tx-${tx.id}`} className="p-4 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center justify-between gap-3">
@@ -520,12 +520,12 @@ const DepositPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Paystack / wallet credits */}
+                  {/* Korapay / wallet credits */}
                   {creditTx.map((tx, idx) => (
                     <tr key={`tx-${tx.id}`} className={cn("border-b border-border/30 hover:bg-muted/40 transition-colors", idx % 2 === 1 && "bg-muted/25")}>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                          <CreditCard className="h-3 w-3" /> Paystack
+                          <CreditCard className="h-3 w-3" /> Korapay
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-foreground">{tx.description || "Deposit"}</td>

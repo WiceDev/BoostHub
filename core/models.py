@@ -32,10 +32,12 @@ class PlatformSettings(models.Model):
     )
 
     # API key overrides — if set, these take precedence over .env values
-    paystack_secret_key = models.CharField(max_length=255, blank=True, default='',
-        help_text="Overrides PAYSTACK_SECRET_KEY in .env")
-    paystack_public_key = models.CharField(max_length=255, blank=True, default='',
-        help_text="Overrides PAYSTACK_PUBLIC_KEY in .env")
+    korapay_secret_key = models.CharField(max_length=255, blank=True, default='',
+        help_text="Overrides KORAPAY_SECRET_KEY in .env")
+    korapay_public_key = models.CharField(max_length=255, blank=True, default='',
+        help_text="Overrides KORAPAY_PUBLIC_KEY in .env")
+    korapay_encryption_key = models.CharField(max_length=255, blank=True, default='',
+        help_text="Overrides KORAPAY_ENCRYPTION_KEY in .env")
     rss_api_key = models.CharField(max_length=255, blank=True, default='',
         help_text="Overrides REAL_SIMPLE_SOCIAL_API_KEY in .env")
     smspool_api_key = models.CharField(max_length=255, blank=True, default='',

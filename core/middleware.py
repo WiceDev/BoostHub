@@ -171,15 +171,15 @@ class SecurityHeadersMiddleware:
     are not blocked. In production, it is fully enforced.
     """
 
-    # CSP directives — external services: Paystack, Google reCAPTCHA
+    # CSP directives — external services: Korapay, Google reCAPTCHA
     CSP_DIRECTIVES = {
         "default-src": "'self'",
-        "script-src": "'self' https://js.paystack.co https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+        "script-src": "'self' https://korablobstorage.blob.core.windows.net https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
         "style-src": "'self' 'unsafe-inline'",
         "img-src": "'self' data: blob: https:",
         "font-src": "'self' data:",
-        "connect-src": "'self' https://api.paystack.co https://www.google.com",
-        "frame-src": "https://js.paystack.co https://www.google.com/recaptcha/",
+        "connect-src": "'self' https://api.korapay.com https://www.google.com",
+        "frame-src": "https://korablobstorage.blob.core.windows.net https://www.google.com/recaptcha/",
         "frame-ancestors": "'none'",
         "base-uri": "'self'",
         "form-action": "'self'",
