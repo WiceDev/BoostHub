@@ -1,0 +1,58 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Crypto Deposit {{ action|title }} — PriveBoost{% endblock %}
+{% block preview_text %}Your crypto deposit has been {% if action == 'confirm' %}approved{% else %}rejected{% endif %}.{% endblock %}
+{% block hero_icon %}{% if action == 'confirm' %}&#9989;{% else %}&#10060;{% endif %}{% endblock %}
+{% block hero_title %}Crypto Deposit {% if action == 'confirm' %}Approved{% else %}Rejected{% endif %}{% endblock %}
+{% block hero_subtitle %}{{ crypto_name }} deposit #{{ deposit_id }}{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+  Hi {{ first_name }},
+</p>
+
+{% if action == 'confirm' %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your crypto deposit has been verified and approved. The equivalent amount has been credited to your wallet.
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 24px; text-align: center;">
+      <p style="margin: 0 0 4px; font-size: 13px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Amount Credited</p>
+      <p style="margin: 0 0 8px; font-size: 32px; font-weight: 800; color: #ffffff;">&#8358;{{ amount_ngn }}</p>
+      <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.7);">via {{ crypto_name }}</p>
+    </td>
+  </tr>
+</table>
+{% else %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Unfortunately, your crypto deposit could not be verified and has been rejected.
+</p>
+
+{% if admin_note %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 0 8px 8px 0; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 14px 16px;">
+      <p style="margin: 0 0 4px; font-size: 13px; color: #991b1b; font-weight: 600;">Reason:</p>
+      <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.6;">{{ admin_note }}</p>
+    </td>
+  </tr>
+</table>
+{% endif %}
+{% endif %}
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td align="center">
+      <a href="{{ wallet_url }}"
+        class="btn-mobile"
+        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px; letter-spacing: 0.2px; box-shadow: 0 4px 14px rgba(26,86,219,0.35);">
+        {% if action == 'confirm' %}View My Wallet &#8594;{% else %}Contact Support{% endif %}
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

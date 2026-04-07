@@ -148,7 +148,6 @@ KORAPAY_ENCRYPTION_KEY = config('KORAPAY_ENCRYPTION_KEY', default='')
 REAL_SIMPLE_SOCIAL_API_KEY = config('REAL_SIMPLE_SOCIAL_API_KEY', default='')
 SMS_POOL_API_KEY = config('SMS_POOL_API_KEY', default='')
 RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
-RSS_USD_TO_NGN = 1600
 PLATFORM_NAME = 'PriveBoost'
 FRONTEND_URL = config('FRONTEND_URL', default='https://www.priveboost.com')
 PLATFORM_CURRENCY = 'NGN'

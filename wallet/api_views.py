@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .models import Transaction, CryptoDeposit
 from .serializers import WalletSerializer, TransactionSerializer
 from .korapay import initialize_checkout
+from core.email_utils import send_deposit_confirmed_email, notify_admin_new_deposit
 
 
 @api_view(['GET'])
@@ -98,6 +99,8 @@ def api_verify_deposit(request):
             description='Wallet deposit via Korapay',
             reference=reference,
         )
+        send_deposit_confirmed_email(request.user, amount_naira, method='Korapay')
+        notify_admin_new_deposit(request.user, amount_naira, method='Korapay', reference=reference)
         return Response({
             'detail': f'{amount_naira:,.2f} NGN has been added to your wallet!',
             'wallet': WalletSerializer(wallet).data,

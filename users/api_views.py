@@ -16,6 +16,7 @@ from .verification import send_verification_email, send_welcome_email, verify_to
 from .password_reset import send_reset_email, verify_reset_token
 from .models import User
 from .totp_utils import generate_secret, verify_code, provisioning_uri
+from core.email_utils import notify_admin_new_user, send_password_changed_email
 
 
 @api_view(['POST'])
@@ -26,8 +27,9 @@ def api_register(request):
     user = serializer.save()
     login(request, user)
     log_ip_action(request, 'register', user=user)
-    # Send verification email
+    # Send verification email + notify admin
     send_verification_email(user, request)
+    notify_admin_new_user(user)
     return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
@@ -137,6 +139,7 @@ def api_change_password(request):
     request.user.set_password(serializer.validated_data['new_password'])
     request.user.save()
     login(request, request.user)
+    send_password_changed_email(request.user)
     return Response({'detail': 'Password updated successfully.'})
 
 
@@ -213,6 +216,7 @@ def api_reset_password(request):
 
     user.set_password(new_password)
     user.save()
+    send_password_changed_email(user)
     return Response({'detail': 'Password reset successfully. You can now log in.'})
 
 

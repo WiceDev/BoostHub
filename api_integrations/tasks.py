@@ -8,6 +8,7 @@ from django.utils import timezone
 from orders.models import Order
 from .rss_client import RSSClient, RSSAPIError
 from .smspool_client import SMSPoolClient, SMSPoolAPIError
+from core.email_utils import notify_admin_api_downtime, send_order_status_email
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def check_boosting_orders():
         client = RSSClient(triggered_by='celery:check_boosting_orders')
     except RSSAPIError as e:
         logger.error(f'RSS client init failed: {e}')
+        notify_admin_api_downtime('RSS SMM Panel', str(e))
         return f'RSS client error: {e}'
 
     updated = 0
@@ -56,8 +58,10 @@ def check_boosting_orders():
                         result=f"Delivered. Start count: {rss_status.get('start_count', 'N/A')}, "
                                f"Remains: {rss_status.get('remains', '0')}"
                     )
+                    send_order_status_email(order.user, order)
                 elif new_status == 'failed':
                     order.mark_failed(notes=f'RSS status: {rss_status_str}')
+                    send_order_status_email(order.user, order)
                 else:
                     order.status = new_status
                     order.save()
@@ -90,6 +94,7 @@ def check_sms_orders():
         client = SMSPoolClient(triggered_by='celery:check_sms_orders')
     except SMSPoolAPIError as e:
         logger.error(f'SMSPool client init failed: {e}')
+        notify_admin_api_downtime('SMSPool', str(e))
         return f'SMSPool client error: {e}'
 
     updated = 0
@@ -105,6 +110,7 @@ def check_sms_orders():
                 except SMSPoolAPIError:
                     pass
                 order.mark_failed(notes='SMS order timed out (20 min).')
+                send_order_status_email(order.user, order)
                 updated += 1
                 logger.info(f'SMS order #{order.id} timed out and refunded.')
                 continue
@@ -115,12 +121,14 @@ def check_sms_orders():
 
             if status_code == '3':
                 order.mark_failed(notes='SMS order expired or cancelled by provider.')
+                send_order_status_email(order.user, order)
                 updated += 1
             elif sms_code:
                 order.external_data = order.external_data or {}
                 order.external_data['sms_code'] = sms_code
                 order.save()
                 order.mark_completed(result=sms_code)
+                send_order_status_email(order.user, order)
                 updated += 1
                 logger.info(f'SMS order #{order.id} completed with code.')
 
@@ -167,6 +175,7 @@ def sync_boosting_services():
         raw_services = client.get_services()
     except RSSAPIError as e:
         logger.error(f'RSS sync failed — could not fetch services: {e}')
+        notify_admin_api_downtime('RSS SMM Panel (sync)', str(e))
         return f'Error: {e}'
 
     created = updated = unchanged = 0
@@ -248,6 +257,7 @@ def sync_sms_services():
         client = SMSPoolClient(triggered_by='celery:sync_sms_services')
     except SMSPoolAPIError as e:
         logger.error(f'SMSPool sync failed — client init error: {e}')
+        notify_admin_api_downtime('SMSPool (sync)', str(e))
         return f'Error: {e}'
 
     # ── Countries ──

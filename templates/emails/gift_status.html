@@ -1,0 +1,99 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Gift Order Update — PriveBoost{% endblock %}
+{% block preview_text %}Your gift order #{{ order_id }} status: {{ status }}.{% endblock %}
+{% block hero_icon %}&#127873;{% endblock %}
+{% block hero_title %}Gift Order Update{% endblock %}
+{% block hero_subtitle %}Order #{{ order_id }} — {{ service_name }}{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+  Hi {{ first_name }},
+</p>
+
+{% if status == 'processing' %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your gift order is now being processed. We're working on getting it ready for delivery!
+</p>
+{% elif status == 'in_transit' %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your gift is on its way! It has been shipped and is in transit to the delivery address.
+</p>
+{% elif status == 'completed' %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your gift order has been delivered successfully. We hope the recipient loves it!
+</p>
+{% elif status == 'failed' or status == 'refunded' %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Unfortunately, there was an issue with your gift order. A refund has been issued to your wallet.
+</p>
+{% else %}
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your gift order status has been updated.
+</p>
+{% endif %}
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background-color: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 20px 24px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td style="padding: 6px 0;">
+            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Order ID:</span>
+            <span style="font-size: 13px; color: #111827; font-weight: 700; float: right;">#{{ order_id }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
+            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Gift:</span>
+            <span style="font-size: 13px; color: #111827; float: right;">{{ service_name }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
+            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Status:</span>
+            <span style="font-size: 13px; color: {% if status == 'completed' %}#059669{% elif status == 'in_transit' %}#1a56db{% elif status == 'processing' %}#d97706{% else %}#dc2626{% endif %}; font-weight: 700; float: right;">{{ status|title }}</span>
+          </td>
+        </tr>
+        {% if tracking_code %}
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
+            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Tracking Code:</span>
+            <span style="font-size: 13px; color: #111827; font-weight: 700; float: right;">{{ tracking_code }}</span>
+          </td>
+        </tr>
+        {% endif %}
+        {% if tracking_url %}
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
+            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Track Delivery:</span>
+            <a href="{{ tracking_url }}" style="font-size: 13px; color: #1a56db; float: right;">Track here &#8594;</a>
+          </td>
+        </tr>
+        {% endif %}
+        {% if notes %}
+        <tr>
+          <td style="padding: 10px 0; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0 0 4px; font-size: 13px; color: #6b7280; font-weight: 600;">Notes:</p>
+            <p style="margin: 0; font-size: 13px; color: #111827; line-height: 1.6;">{{ notes }}</p>
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td align="center">
+      <a href="{{ orders_url }}"
+        class="btn-mobile"
+        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px; letter-spacing: 0.2px; box-shadow: 0 4px 14px rgba(26,86,219,0.35);">
+        View Order Details &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

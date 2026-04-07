@@ -4,6 +4,7 @@ from .models import Order
 from .serializers import OrderSerializer
 from .services import get_user_orders, get_order_stats, create_order
 from services.models import Gift
+from core.email_utils import notify_admin_gift_order
 
 
 @api_view(['GET'])
@@ -57,6 +58,7 @@ def api_place_gift_order(request):
         # Stays as pending until admin reviews
         order.status = 'pending'
         order.save()
+        notify_admin_gift_order(request.user, order)
         return Response({
             'detail': 'Gift order placed successfully.',
             'order': OrderSerializer(order).data,

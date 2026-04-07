@@ -37,7 +37,7 @@ def send_reset_email(user, request=None):
 
     reset_url = f"{base}/reset-password?token={token}"
 
-    subject = "Reset your password — WicePlatform"
+    subject = "Reset your password — PriveBoost"
     html_body = f"""<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -59,7 +59,7 @@ def send_reset_email(user, request=None):
       <p style="margin:0;color:#999;font-size:13px;">This link expires in <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email — your password won't change.</p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #eee;text-align:center;">
-      <p style="margin:0;color:#999;font-size:12px;">WicePlatform</p>
+      <p style="margin:0;color:#999;font-size:12px;">PriveBoost</p>
     </div>
   </div>
 </body>

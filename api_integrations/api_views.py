@@ -9,6 +9,7 @@ from orders.serializers import OrderSerializer
 from orders.services import create_order
 from orders.utils import is_provider_insufficient_funds, notify_admins_insufficient_funds
 from core.models import PlatformSettings
+from core.email_utils import send_order_status_email
 from .rss_client import RSSClient, RSSAPIError
 
 
@@ -46,8 +47,8 @@ def _get_services_cached():
 
     from .models import BoostingServiceSnapshot
 
-    ngn_to_usd = Decimal('1') / Decimal(str(settings.RSS_USD_TO_NGN))
     platform_settings = PlatformSettings.load()
+    ngn_to_usd = Decimal('1') / platform_settings.usd_to_ngn_rate
     markup_multiplier = Decimal('1') + (platform_settings.boosting_markup_percent / Decimal('100'))
 
     services = []
@@ -213,8 +214,10 @@ def api_boosting_order_status(request, order_id):
                 result=f"Delivered. Start count: {rss_status.get('start_count', 'N/A')}, "
                        f"Remains: {rss_status.get('remains', '0')}"
             )
+            send_order_status_email(order.user, order)
         elif new_status == 'failed':
             order.mark_failed(notes=f'RSS status: {rss_status_str}')
+            send_order_status_email(order.user, order)
         else:
             order.status = new_status
             order.save()

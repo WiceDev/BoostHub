@@ -26,5 +26,9 @@ celerybeat-schedule-wal
 # Misc
 cookies.txt
 .idea/
+strix-instructions.md
+generate_security_report.py
+WicePlatform_Security_Assessment_Report.pdf
+context.md
 
 "social image.png"

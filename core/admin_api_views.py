@@ -18,6 +18,10 @@ from core.sanitizers import sanitize_text, sanitize_url, sanitize_dict, MAX_SHOR
 logger = logging.getLogger(__name__)
 from wallet.models import Wallet, Transaction
 from orders.models import Order
+from core.email_utils import (
+    send_order_status_email, send_account_details_email,
+    send_gift_status_email, send_crypto_deposit_status_email,
+)
 from services.models import Gift, BoostingService, SocialMediaAccount, WebDevPortfolio
 from core.models import PlatformSettings, BannedIP, IPLog
 
@@ -704,6 +708,8 @@ def admin_order_update(request, order_id):
     new_status = request.data.get('status')
     notes = sanitize_text(request.data.get('notes', ''), max_length=MAX_MEDIUM_TEXT)
 
+    old_status = order.status
+
     if new_status == 'completed':
         result = sanitize_text(request.data.get('result', ''), max_length=MAX_MEDIUM_TEXT)
         order.mark_completed(result=result)
@@ -731,6 +737,18 @@ def admin_order_update(request, order_id):
         order.save()
     else:
         return Response({'detail': 'Invalid status.'}, status=400)
+
+    # ── Email notifications on status change ──────────────────────────────
+    if new_status != old_status:
+        try:
+            if order.service_type == 'gift':
+                send_gift_status_email(order.user, order)
+            elif order.service_type == 'social_account' and new_status == 'completed':
+                send_account_details_email(order.user, order)
+            elif new_status in ('completed', 'failed', 'refunded'):
+                send_order_status_email(order.user, order)
+        except Exception as e:
+            logger.warning(f'Failed to send order status email for #{order.id}: {e}')
 
     return Response({'detail': f'Order #{order.id} updated to {order.status}.'})
 
@@ -1275,12 +1293,14 @@ def admin_crypto_deposit_action(request, deposit_id):
             description=f'Crypto deposit — {dep.crypto_name}',
             reference=f'CRYPTO-{dep.id}-{dep.transaction_hash[:12]}',
         )
+        send_crypto_deposit_status_email(dep.user, dep, 'confirm')
         return Response({'detail': f'Deposit confirmed. ₦{dep.amount_ngn} credited to {dep.user.email}.'})
 
     elif action == 'reject':
         dep.status = 'rejected'
         dep.admin_note = admin_note or 'Rejected by admin.'
         dep.save()
+        send_crypto_deposit_status_email(dep.user, dep, 'reject')
         return Response({'detail': f'Deposit rejected.'})
 
     return Response({'detail': 'action must be "confirm" or "reject".'}, status=400)

@@ -10,6 +10,7 @@ from orders.services import create_order
 from orders.utils import is_provider_insufficient_funds, notify_admins_insufficient_funds
 from core.models import PlatformSettings
 from core.sanitizers import sanitize_text, MAX_SHORT_TEXT
+from core.email_utils import send_order_status_email
 from .smspool_client import SMSPoolClient, SMSPoolAPIError
 
 
@@ -113,10 +114,10 @@ def _get_services_cached():
 def _calculate_price_ngn(usd_price_str: str) -> tuple[Decimal, Decimal]:
     """Convert USD price to NGN with markup. Returns (price_ngn, cost_ngn)."""
     usd_price = Decimal(str(usd_price_str))
-    usd_to_ngn = Decimal(str(settings.RSS_USD_TO_NGN))
+    platform_settings = PlatformSettings.load()
+    usd_to_ngn = platform_settings.usd_to_ngn_rate
     cost_ngn = (usd_price * usd_to_ngn).quantize(Decimal('0.01'), rounding=ROUND_UP)
 
-    platform_settings = PlatformSettings.load()
     markup = Decimal('1') + (platform_settings.numbers_markup_percent / Decimal('100'))
     price_ngn = (cost_ngn * markup).quantize(Decimal('0.01'), rounding=ROUND_UP)
     return price_ngn, cost_ngn
@@ -158,7 +159,7 @@ def api_numbers_price(request):
 
     usd_price = result.get('price', '0')
     price_ngn, cost_ngn = _calculate_price_ngn(usd_price)
-    ngn_to_usd = Decimal('1') / Decimal(str(settings.RSS_USD_TO_NGN))
+    ngn_to_usd = Decimal('1') / PlatformSettings.load().usd_to_ngn_rate
 
     return Response({
         'price_ngn': str(price_ngn),
@@ -280,10 +281,12 @@ def api_numbers_order_status(request, order_id):
     # Status mapping: 1=pending, 2=completed (code received), 3=cancelled/expired
     if status_code == '3' and order.status not in ('failed', 'refunded', 'cancelled'):
         order.mark_failed(notes='SMS order expired or cancelled by provider.')
+        send_order_status_email(order.user, order)
     elif sms_code and order.status not in ('completed', 'failed', 'refunded'):
         order.external_data['sms_code'] = sms_code
         order.save()
         order.mark_completed(result=sms_code)
+        send_order_status_email(order.user, order)
 
     data = OrderSerializer(order).data
     data['phone_number'] = phone_number

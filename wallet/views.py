@@ -6,6 +6,10 @@ from django.http import HttpResponse
 from django.db.models import Sum
 from .models import Transaction
 from .korapay import verify_webhook_signature
+from core.email_utils import (
+    send_referral_bonus_email, send_deposit_confirmed_email,
+    notify_admin_new_deposit,
+)
 
 REFERRAL_DEPOSIT_THRESHOLD = Decimal('10000')
 REFERRAL_BONUS_AMOUNT = Decimal('2000')
@@ -45,6 +49,9 @@ def korapay_webhook(request):
                     description='Wallet deposit via Korapay (webhook)',
                     reference=reference
                 )
+                # Notify user + admin of confirmed deposit
+                send_deposit_confirmed_email(user, amount_naira, method='Korapay')
+                notify_admin_new_deposit(user, amount_naira, method='Korapay', reference=reference)
                 # ── Referral bonus check ──────────────────────────────────
                 if user.referred_by and not user.referral_bonus_paid:
                     total_deposited = user.wallet.transactions.filter(
@@ -57,6 +64,10 @@ def korapay_webhook(request):
                         )
                         user.referral_bonus_paid = True
                         user.save(update_fields=['referral_bonus_paid'])
+                        # Notify the referrer they earned a bonus
+                        send_referral_bonus_email(
+                            user.referred_by, user.email, REFERRAL_BONUS_AMOUNT
+                        )
             except User.DoesNotExist:
                 pass
     except (json.JSONDecodeError, KeyError):

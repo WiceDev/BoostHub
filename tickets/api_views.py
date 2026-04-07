@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from .models import Ticket
 from .serializers import TicketSerializer
+from core.email_utils import notify_admin_new_ticket, send_ticket_reply_email
 
 
 # ── User endpoints ──────────────────────────────────────────────────────────
@@ -30,6 +31,7 @@ def api_tickets(request):
         message=message,
         order_number=order_number,
     )
+    notify_admin_new_ticket(request.user, ticket)
     return Response(TicketSerializer(ticket).data, status=201)
 
 
@@ -64,4 +66,9 @@ def admin_ticket_update(request, ticket_id):
         ticket.admin_response = sanitize_text(admin_response, max_length=MAX_LONG_TEXT)
 
     ticket.save()
+
+    # Notify user if admin added a response
+    if admin_response:
+        send_ticket_reply_email(ticket.user, ticket)
+
     return Response(TicketSerializer(ticket).data)
