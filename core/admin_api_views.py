@@ -1228,24 +1228,50 @@ def admin_send_email(request):
     if not recipients:
         return Response({'detail': 'No valid recipients found.'}, status=400)
 
-    # Wrap in a simple HTML template
-    full_html = f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:600px;margin:20px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-    <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:24px 32px;">
-      <h1 style="margin:0;color:#ffffff;font-size:20px;">{subject}</h1>
-    </div>
-    <div style="padding:28px 32px;color:#333333;font-size:15px;line-height:1.7;">
-      {html_body}
-    </div>
-    <div style="padding:16px 32px;border-top:1px solid #eee;text-align:center;">
-      <p style="margin:0;color:#999;font-size:12px;">Sent from PriveBoost</p>
-    </div>
-  </div>
-</body>
-</html>"""
+    # Inject inline styles into the editor HTML so paragraphs render in email clients
+    import re as _re
+    styled_body = html_body
+    styled_body = _re.sub(
+        r'<p(?=[ >])',
+        '<p style="margin: 0 0 16px; line-height: 1.7;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<h2(?=[ >])',
+        '<h2 style="margin: 24px 0 8px; font-size: 20px; font-weight: 700; color: #111827;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<h3(?=[ >])',
+        '<h3 style="margin: 20px 0 6px; font-size: 17px; font-weight: 600; color: #111827;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<ul(?=[ >])',
+        '<ul style="margin: 0 0 16px; padding-left: 24px;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<ol(?=[ >])',
+        '<ol style="margin: 0 0 16px; padding-left: 24px;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<li(?=[ >])',
+        '<li style="margin: 0 0 6px; line-height: 1.7;"',
+        styled_body,
+    )
+    styled_body = _re.sub(
+        r'<a ',
+        '<a style="color: #1a56db; text-decoration: underline;" ',
+        styled_body,
+    )
+
+    from django.template.loader import render_to_string
+    full_html = render_to_string('emails/admin_compose.html', {
+        'subject': subject,
+        'html_body': styled_body,
+    })
 
     # Send — use BCC for bulk to protect privacy
     failed = 0
