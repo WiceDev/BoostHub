@@ -200,7 +200,7 @@ const DashboardHome = () => {
   const { data: announcements } = useQuery({ queryKey: ['announcements'], queryFn: fetchAnnouncements, staleTime: 5 * 60 * 1000 });
   const [announcementExpanded, setAnnouncementExpanded] = useState(false);
 
-  const dataLoading = statsLoading || walletLoading || txLoading || ordersLoading;
+  const isLoading = statsLoading || walletLoading || txLoading || ordersLoading;
   const isError = statsError || ordersError;
 
   const recentOrders = (orders || []).slice(0, 5);
@@ -220,11 +220,59 @@ const DashboardHome = () => {
     [transactions, chartRange]
   );
 
-  const balanceStr = walletLoading
-    ? "..."
-    : wallet
-      ? showBalance ? formatAmount(wallet.balance) : "••••••••"
-      : "...";
+  const balanceStr = wallet
+    ? showBalance ? formatAmount(wallet.balance) : "••••••••"
+    : "...";
+
+  if (isLoading) return (
+    <div className="space-y-6 max-w-[1400px]">
+      <Skeleton className="h-44 rounded-2xl" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="glass-card p-4 sm:p-5 space-y-3">
+            <Skeleton className="h-11 w-11 rounded-xl" />
+            <Skeleton className="h-7 w-24" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3 glass-card p-5 space-y-4">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-[220px] rounded-xl" />
+        </div>
+        <div className="lg:col-span-2 glass-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-border/50"><Skeleton className="h-4 w-32" /></div>
+          <div className="divide-y divide-border/30">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <Skeleton className="h-9 w-9 rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="glass-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border/50"><Skeleton className="h-4 w-28" /></div>
+        <div className="divide-y divide-border/20">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   if (isError) return (
     <div className="flex flex-col items-center justify-center py-24 space-y-3">
@@ -348,36 +396,27 @@ const DashboardHome = () => {
 
       {/* Stat Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {dataLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="glass-card p-4 sm:p-5 space-y-3">
-              <Skeleton className="h-11 w-11 rounded-xl" />
-              <Skeleton className="h-7 w-24" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-          ))
-        ) : (
-          [{label:"Total Deposits",value:formatAmount(totalDeposits),icon:TrendingUp,iconBg:"bg-emerald-500/10",iconColor:"text-emerald-500",change:"+12%"},
-           {label:"Total Spent",value:formatAmount(totalSpent),icon:TrendingDown,iconBg:"bg-rose-500/10",iconColor:"text-rose-500",change:"-3%"},
-           {label:"Total Orders",value:stats?.total_orders?.toString()||"0",icon:ShoppingBag,iconBg:"bg-primary/10",iconColor:"text-primary",change:"+5"},
-           {label:"Pending",value:stats?.pending_orders?.toString()||"0",icon:Clock,iconBg:"bg-amber-500/10",iconColor:"text-amber-500",change:""},
-          ].map((stat) => (
-            <div key={stat.label} className="glass-card p-4 sm:p-5 group hover:border-primary/20 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className={`h-11 w-11 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
-                  <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
-                </div>
-                {stat.change && (
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                    stat.change.startsWith("+") ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
-                  }`}>{stat.change}</span>
-                )}
+        {[
+          { label: "Total Deposits", value: formatAmount(totalDeposits), icon: TrendingUp, iconBg: "bg-emerald-500/10", iconColor: "text-emerald-500", change: "+12%" },
+          { label: "Total Spent", value: formatAmount(totalSpent), icon: TrendingDown, iconBg: "bg-rose-500/10", iconColor: "text-rose-500", change: "-3%" },
+          { label: "Total Orders", value: stats?.total_orders?.toString() || "0", icon: ShoppingBag, iconBg: "bg-primary/10", iconColor: "text-primary", change: "+5" },
+          { label: "Pending", value: stats?.pending_orders?.toString() || "0", icon: Clock, iconBg: "bg-amber-500/10", iconColor: "text-amber-500", change: "" },
+        ].map((stat) => (
+          <div key={stat.label} className="glass-card p-4 sm:p-5 group hover:border-primary/20 transition-colors">
+            <div className="flex items-start justify-between">
+              <div className={`h-11 w-11 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
               </div>
-              <p className="text-2xl font-bold text-foreground mt-3">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+              {stat.change && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  stat.change.startsWith("+") ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                }`}>{stat.change}</span>
+              )}
             </div>
-          ))
-        )}
+            <p className="text-2xl font-bold text-foreground mt-3">{stat.value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+          </div>
+        ))}
       </div>
 
       {/* Mobile only: Quick Services standalone */}
