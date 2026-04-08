@@ -68,9 +68,9 @@ class User(AbstractUser):
             self.referral_code = code
         if self.is_staff:
             self.is_verified = True
-            # Auto-assign super_admin to staff users with no role set
+            # Auto-assign service_admin to new staff users with no role set
             if not self.admin_role:
-                self.admin_role = 'super_admin'
+                self.admin_role = 'service_admin'
         super().save(*args, **kwargs)
 
     @property

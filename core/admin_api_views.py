@@ -311,7 +311,17 @@ def admin_user_detail(request, user_id):
     if 'is_active' in request.data:
         u.is_active = request.data['is_active']
     if 'is_staff' in request.data:
+        # Prevent demoting the super admin
+        if u.is_super_admin and not request.data['is_staff']:
+            return Response({'detail': 'Cannot remove staff status from the super admin.'}, status=400)
         u.is_staff = request.data['is_staff']
+        # New staff users become service_admin (not super_admin)
+        if u.is_staff and not u.admin_role:
+            u.admin_role = 'service_admin'
+        # Revoking staff clears admin role
+        if not u.is_staff:
+            u.admin_role = ''
+            u.admin_permissions = []
     # Staff users are automatically verified
     if u.is_staff and not u.is_verified:
         u.is_verified = True
