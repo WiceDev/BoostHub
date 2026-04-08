@@ -1241,7 +1241,7 @@ def admin_send_email(request):
       {html_body}
     </div>
     <div style="padding:16px 32px;border-top:1px solid #eee;text-align:center;">
-      <p style="margin:0;color:#999;font-size:12px;">Sent from WicePlatform</p>
+      <p style="margin:0;color:#999;font-size:12px;">Sent from PriveBoost</p>
     </div>
   </div>
 </body>

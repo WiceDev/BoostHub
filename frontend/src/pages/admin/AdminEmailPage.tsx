@@ -148,13 +148,17 @@ const AdminEmailPage = () => {
         recipient_type: recipientType,
         user_ids: recipientType === "selected" ? selectedUserIds : undefined,
       });
-      toast.success(res.detail);
+      if (res.failed && res.failed > 0 && res.sent > 0) {
+        toast.warning(`Sent to ${res.sent} recipients, but ${res.failed} failed.`);
+      } else {
+        toast.success(res.detail);
+      }
       // Reset form
       setSubject("");
       editor.commands.clearContent();
       setSelectedUserIds([]);
-    } catch {
-      toast.error("Failed to send email.");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to send email. Check email configuration.");
     } finally {
       setSending(false);
     }
