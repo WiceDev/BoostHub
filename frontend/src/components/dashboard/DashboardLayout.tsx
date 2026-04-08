@@ -5,7 +5,7 @@ import {
   Bell, ChevronDown, ChevronRight, Menu, Zap, CreditCard, Package, RotateCcw, Info,
   Settings, ShieldCheck, ShieldAlert, Sun, Moon, Search,
   TrendingUp, Phone, UserCheck, Gift, Globe, Wallet, ArrowLeftRight, X,
-  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity, Megaphone, FileText
+  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity, Megaphone, FileText, Shield
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { logout as apiLogout, fetchWallet, fetchNotifications, markNotificationsRead, type NotificationsResponse } from "@/lib/api";
@@ -258,6 +258,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {user?.is_super_admin && <NavLink to="/admin/email" icon={Mail} label="Send Email" />}
             {user?.is_super_admin && <NavLink to="/admin/settings" icon={Settings} label="Settings" />}
             {user?.is_service_admin && <NavLink to="/admin/my-submissions" icon={FileText} label="My Submissions" />}
+            {user?.is_super_admin && <NavLink to="/admin/service-admins" icon={Shield} label="Service Admins" />}
             {user?.is_super_admin && <NavLink to="/admin/submissions" icon={FileText} label="Pending Approvals" />}
             <NavLink to="/admin/profile" icon={ShieldCheck} label="My Profile & 2FA" />
           </>

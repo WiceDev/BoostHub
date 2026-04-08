@@ -47,6 +47,7 @@ import AdminApiLogsPage from "./pages/admin/AdminApiLogsPage";
 import AdminAnnouncementsPage from "./pages/admin/AdminAnnouncementsPage";
 import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
 import AdminMySubmissionsPage from "./pages/admin/AdminMySubmissionsPage";
+import AdminServiceAdminsPage from "./pages/admin/AdminServiceAdminsPage";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,7 @@ const App = () => (
             <Route path="/admin/catalog" element={<AdminRoute><DashboardLayout><AdminCatalogPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/api-logs" element={<AdminRoute><DashboardLayout><AdminApiLogsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><DashboardLayout><AdminAnnouncementsPage /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin/service-admins" element={<AdminRoute><DashboardLayout><AdminServiceAdminsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/submissions" element={<AdminRoute><DashboardLayout><AdminSubmissionsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/my-submissions" element={<AdminRoute><DashboardLayout><AdminMySubmissionsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><DashboardLayout><ProfilePage /></DashboardLayout></AdminRoute>} />
