@@ -15,11 +15,11 @@ services:
       redis:
         condition: service_started
     command: >
-      sh -c "python manage.py migrate --noinput &&
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate --noinput &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
     volumes:
       - media_files:/app/media
-      - static_files:/app/staticfiles
 
   celery:
     build: .
@@ -72,4 +72,3 @@ volumes:
   postgres_data:
   redis_data:
   media_files:
-  static_files:
