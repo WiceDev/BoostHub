@@ -1286,7 +1286,6 @@ def admin_send_email(request):
                 subject=subject,
                 body=full_html,
                 from_email=from_email,
-                to=[from_email],
                 bcc=batch,
             )
             email.content_subtype = 'html'
