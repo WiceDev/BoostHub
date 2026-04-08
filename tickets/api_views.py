@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from core.permissions import IsSuperAdmin
 from rest_framework.response import Response
 from .models import Ticket
 from .serializers import TicketSerializer
@@ -38,7 +39,7 @@ def api_tickets(request):
 # ── Admin endpoints ──────────────────────────────────────────────────────────
 
 @api_view(['GET'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsSuperAdmin])
 def admin_tickets(request):
     status_filter = request.query_params.get('status')
     tickets = Ticket.objects.select_related('user').all()
@@ -48,7 +49,7 @@ def admin_tickets(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsSuperAdmin])
 def admin_ticket_update(request, ticket_id):
     from core.sanitizers import sanitize_text, MAX_LONG_TEXT
 

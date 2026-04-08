@@ -45,6 +45,8 @@ import AdminTicketsPage from "./pages/admin/AdminTicketsPage";
 import AdminCatalogPage from "./pages/admin/AdminCatalogPage";
 import AdminApiLogsPage from "./pages/admin/AdminApiLogsPage";
 import AdminAnnouncementsPage from "./pages/admin/AdminAnnouncementsPage";
+import AdminSubmissionsPage from "./pages/admin/AdminSubmissionsPage";
+import AdminMySubmissionsPage from "./pages/admin/AdminMySubmissionsPage";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +89,20 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ServiceAdminLanding() {
+  const { user } = useAuth();
+  // Service admins land on their first available page instead of the super-admin dashboard
+  if (user?.is_service_admin) {
+    const perms = user.admin_permissions || [];
+    if (perms.includes("manage_gifts")) return <Navigate to="/admin/gifts" replace />;
+    if (perms.includes("manage_boosting")) return <Navigate to="/admin/services" replace />;
+    if (perms.includes("manage_accounts")) return <Navigate to="/admin/accounts" replace />;
+    if (perms.includes("manage_webdev")) return <Navigate to="/admin/webdev" replace />;
+    return <Navigate to="/admin/my-submissions" replace />;
+  }
+  return <AdminDashboard />;
+}
+
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -126,7 +142,7 @@ const App = () => (
             <Route path="/dashboard/tickets" element={<ProtectedRoute><DashboardLayout><TicketsPage /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/updates" element={<ProtectedRoute><DashboardLayout><UpdatesPage /></DashboardLayout></ProtectedRoute>} />
             {/* Admin routes */}
-            <Route path="/admin" element={<AdminRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin" element={<AdminRoute><DashboardLayout><ServiceAdminLanding /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><DashboardLayout><AdminUsersPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/gifts" element={<AdminRoute><DashboardLayout><AdminGiftsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/services" element={<AdminRoute><DashboardLayout><AdminServicesPage /></DashboardLayout></AdminRoute>} />
@@ -142,6 +158,8 @@ const App = () => (
             <Route path="/admin/catalog" element={<AdminRoute><DashboardLayout><AdminCatalogPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/api-logs" element={<AdminRoute><DashboardLayout><AdminApiLogsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><DashboardLayout><AdminAnnouncementsPage /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin/submissions" element={<AdminRoute><DashboardLayout><AdminSubmissionsPage /></DashboardLayout></AdminRoute>} />
+            <Route path="/admin/my-submissions" element={<AdminRoute><DashboardLayout><AdminMySubmissionsPage /></DashboardLayout></AdminRoute>} />
             <Route path="/admin/profile" element={<AdminRoute><DashboardLayout><ProfilePage /></DashboardLayout></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

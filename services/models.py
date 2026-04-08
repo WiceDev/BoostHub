@@ -1,4 +1,5 @@
 from django.db import models
+from services.pending import PendingSubmission  # noqa: F401 — ensure migration picks it up
 
 
 class Gift(models.Model):

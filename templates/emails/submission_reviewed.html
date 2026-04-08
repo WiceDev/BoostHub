@@ -1,0 +1,47 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Submission {{ action|title }} — PriveBoost{% endblock %}
+{% block preview_text %}Your {{ submission_type }} submission was {{ action }}{% endblock %}
+{% block hero_icon %}{% if action == "approved" %}&#9989;{% else %}&#10060;{% endif %}{% endblock %}
+{% block hero_title %}Submission {{ action|title }}{% endblock %}
+{% block hero_subtitle %}Your {{ submission_type }} submission has been reviewed{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+  Hi {{ name }},
+</p>
+<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+  Your <strong>{{ submission_type }}</strong> submission has been
+  {% if action == "approved" %}
+    <span style="color: #059669; font-weight: 700;">approved</span> and is now live on the platform.
+  {% else %}
+    <span style="color: #dc2626; font-weight: 700;">rejected</span> by a super admin.
+  {% endif %}
+</p>
+
+{% if review_note %}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background-color: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 20px 24px;">
+      <p style="margin: 0 0 6px; font-size: 13px; color: #6b7280; font-weight: 600;">Review Note:</p>
+      <p style="margin: 0; font-size: 14px; color: #111827; line-height: 1.6;">{{ review_note }}</p>
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+  <tr>
+    <td align="center">
+      <a href="{{ dashboard_url }}"
+        class="btn-mobile"
+        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px;">
+        View My Submissions &#8594;
+      </a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+
+{% block footer_note %}You received this because you are a service admin on PriveBoost.{% endblock %}

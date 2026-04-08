@@ -1,5 +1,10 @@
 """
 Admin API views — all require is_staff=True.
+
+Permission model:
+- super_admin  → full access to everything
+- service_admin → limited by admin_permissions; write operations on services
+  create PendingSubmission records that require super_admin approval
 """
 import logging
 from datetime import timedelta
@@ -14,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from users.models import User
 from core.sanitizers import sanitize_text, sanitize_url, sanitize_dict, MAX_SHORT_TEXT, MAX_MEDIUM_TEXT, MAX_URL, MAX_PHONE, MAX_LONG_TEXT
+from core.permissions import IsSuperAdmin, require_admin_permission
 
 logger = logging.getLogger(__name__)
 from wallet.models import Wallet, Transaction
@@ -21,8 +27,10 @@ from orders.models import Order
 from core.email_utils import (
     send_order_status_email, send_account_details_email,
     send_gift_status_email, send_crypto_deposit_status_email,
+    notify_admin_new_submission, send_submission_reviewed_email,
 )
 from services.models import Gift, BoostingService, SocialMediaAccount, WebDevPortfolio
+from services.pending import PendingSubmission
 from core.models import PlatformSettings, BannedIP, IPLog
 
 
@@ -31,7 +39,7 @@ from core.models import PlatformSettings, BannedIP, IPLog
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_stats(request):
     users_count = User.objects.count()
     orders_count = Order.objects.count()
@@ -57,7 +65,7 @@ def admin_stats(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_analytics(request):
     from decimal import Decimal as D
 
@@ -199,7 +207,7 @@ def admin_analytics(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_users(request):
     search = request.query_params.get('search', '')
     users = User.objects.select_related('wallet').all()
@@ -238,7 +246,7 @@ def admin_users(request):
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_user_detail(request, user_id):
     try:
         u = User.objects.select_related('wallet').get(pk=user_id)
@@ -312,7 +320,7 @@ def admin_user_detail(request, user_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_user_credit(request, user_id):
     """Credit a user's wallet (admin top-up)."""
     try:
@@ -334,7 +342,7 @@ def admin_user_credit(request, user_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_user_debit(request, user_id):
     """Debit (deduct from) a user's wallet."""
     try:
@@ -359,7 +367,7 @@ def admin_user_debit(request, user_id):
 
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_user_delete(request, user_id):
     """Delete a user account."""
     try:
@@ -380,6 +388,7 @@ def admin_user_delete(request, user_id):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_gifts')
 def admin_gifts(request):
     if request.method == 'GET':
         gifts = Gift.objects.all()
@@ -407,6 +416,22 @@ def admin_gifts(request):
         if not request.data.get(field):
             return Response({'detail': f'{field} is required.'}, status=400)
 
+    # Service admins submit for approval; super admins create directly
+    if request.user.is_service_admin:
+        submission = PendingSubmission.objects.create(
+            submission_type='gift',
+            data=sanitize_dict(dict(request.data)),
+            submitted_by=request.user,
+        )
+        try:
+            notify_admin_new_submission(submission)
+        except Exception:
+            pass
+        return Response({
+            'detail': 'Gift submitted for super admin approval.',
+            'submission_id': submission.id,
+        }, status=201)
+
     buying_price_raw = request.data.get('buying_price')
     gift = Gift.objects.create(
         name=sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT),
@@ -430,6 +455,7 @@ def admin_gifts(request):
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_gifts')
 def admin_gift_detail(request, gift_id):
     try:
         gift = Gift.objects.get(pk=gift_id)
@@ -493,6 +519,7 @@ def admin_gift_detail(request, gift_id):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_boosting')
 def admin_boosting_services(request):
     if request.method == 'GET':
         services = BoostingService.objects.all()
@@ -514,6 +541,21 @@ def admin_boosting_services(request):
         if not request.data.get(field):
             return Response({'detail': f'{field} is required.'}, status=400)
 
+    if request.user.is_service_admin:
+        submission = PendingSubmission.objects.create(
+            submission_type='boosting_service',
+            data=sanitize_dict(dict(request.data)),
+            submitted_by=request.user,
+        )
+        try:
+            notify_admin_new_submission(submission)
+        except Exception:
+            pass
+        return Response({
+            'detail': 'Boosting service submitted for super admin approval.',
+            'submission_id': submission.id,
+        }, status=201)
+
     svc = BoostingService.objects.create(
         name=sanitize_text(request.data['name'], max_length=MAX_SHORT_TEXT),
         platform=sanitize_text(request.data['platform'], max_length=MAX_SHORT_TEXT),
@@ -528,6 +570,7 @@ def admin_boosting_services(request):
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_boosting')
 def admin_boosting_service_detail(request, service_id):
     try:
         svc = BoostingService.objects.get(pk=service_id)
@@ -574,7 +617,7 @@ def admin_boosting_service_detail(request, service_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_orders(request):
     status_filter = request.query_params.get('status', '')
     service_type = request.query_params.get('type', '')
@@ -611,7 +654,7 @@ def admin_orders(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_create_order(request):
     """Create an order on behalf of any user — optionally deduct from their wallet."""
     from decimal import Decimal, InvalidOperation
@@ -698,7 +741,7 @@ def admin_create_order(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_order_update(request, order_id):
     try:
         order = Order.objects.get(pk=order_id)
@@ -778,7 +821,7 @@ def _key_info(db_val, settings_attr):
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_platform_settings(request):
     settings_obj = PlatformSettings.load()
 
@@ -918,6 +961,7 @@ def public_crypto_methods(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_accounts')
 def admin_accounts(request):
     if request.method == 'GET':
         accounts = SocialMediaAccount.objects.all()
@@ -941,6 +985,21 @@ def admin_accounts(request):
         if not request.data.get(field):
             return Response({'detail': f'{field} is required.'}, status=400)
 
+    if request.user.is_service_admin:
+        submission = PendingSubmission.objects.create(
+            submission_type='social_account',
+            data=sanitize_dict(dict(request.data)),
+            submitted_by=request.user,
+        )
+        try:
+            notify_admin_new_submission(submission)
+        except Exception:
+            pass
+        return Response({
+            'detail': 'Social media account submitted for super admin approval.',
+            'submission_id': submission.id,
+        }, status=201)
+
     buying_price_raw = request.data.get('buying_price')
     required_fields = request.data.get('required_fields', [])
     if required_fields and isinstance(required_fields, list):
@@ -960,6 +1019,7 @@ def admin_accounts(request):
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_accounts')
 def admin_account_detail(request, account_id):
     try:
         account = SocialMediaAccount.objects.get(pk=account_id)
@@ -1015,6 +1075,7 @@ def admin_account_detail(request, account_id):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_webdev')
 def admin_webdev(request):
     if request.method == 'GET':
         items = WebDevPortfolio.objects.all()
@@ -1038,6 +1099,21 @@ def admin_webdev(request):
         if not request.data.get(field):
             return Response({'detail': f'{field} is required.'}, status=400)
 
+    if request.user.is_service_admin:
+        submission = PendingSubmission.objects.create(
+            submission_type='webdev_portfolio',
+            data=sanitize_dict(dict(request.data)),
+            submitted_by=request.user,
+        )
+        try:
+            notify_admin_new_submission(submission)
+        except Exception:
+            pass
+        return Response({
+            'detail': 'Portfolio item submitted for super admin approval.',
+            'submission_id': submission.id,
+        }, status=201)
+
     item = WebDevPortfolio.objects.create(
         title=sanitize_text(request.data['title'], max_length=MAX_SHORT_TEXT),
         description=sanitize_text(request.data.get('description', ''), max_length=MAX_MEDIUM_TEXT),
@@ -1053,6 +1129,7 @@ def admin_webdev(request):
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_webdev')
 def admin_webdev_detail(request, item_id):
     try:
         item = WebDevPortfolio.objects.get(pk=item_id)
@@ -1102,7 +1179,7 @@ def admin_webdev_detail(request, item_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_send_email(request):
     """Send email to specific users or all users.
 
@@ -1198,7 +1275,7 @@ def admin_send_email(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_deposits(request):
     from wallet.models import Transaction
     txns = (
@@ -1242,7 +1319,7 @@ def admin_deposits(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_crypto_deposits(request):
     from wallet.models import CryptoDeposit
     status_filter = request.query_params.get('status')
@@ -1267,7 +1344,7 @@ def admin_crypto_deposits(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_crypto_deposit_action(request, deposit_id):
     """Confirm or reject a pending crypto deposit."""
     from wallet.models import CryptoDeposit
@@ -1311,7 +1388,7 @@ def admin_crypto_deposit_action(request, deposit_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_ip_logs(request):
     """Recent IP activity log (login attempts, registrations)."""
     ip_filter = request.query_params.get('ip', '').strip()
@@ -1331,7 +1408,7 @@ def admin_ip_logs(request):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_banned_ips(request):
     """List or add banned IPs."""
     if request.method == 'GET':
@@ -1373,7 +1450,7 @@ def admin_banned_ips(request):
 
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_banned_ip_detail(request, ban_id):
     """Unban an IP."""
     try:
@@ -1396,7 +1473,7 @@ def admin_banned_ip_detail(request, ban_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_boosting(request):
     """List all synced boosting services with is_active toggle state."""
     from api_integrations.models import BoostingServiceSnapshot
@@ -1448,7 +1525,7 @@ def _sync_boosting_service(svc):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_boosting_detail(request, service_id):
     """Toggle is_active for a boosting service snapshot; syncs to Manage Services."""
     from api_integrations.models import BoostingServiceSnapshot
@@ -1468,7 +1545,7 @@ def admin_catalog_boosting_detail(request, service_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_boosting_bulk(request):
     """Bulk toggle is_active for multiple boosting service snapshots."""
     from api_integrations.models import BoostingServiceSnapshot
@@ -1494,7 +1571,7 @@ def admin_catalog_boosting_bulk(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_countries(request):
     """List all synced SMS countries with is_active toggle state."""
     from api_integrations.models import SMSCountrySnapshot
@@ -1512,7 +1589,7 @@ def admin_catalog_sms_countries(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_country_detail(request, country_id):
     """Toggle is_active for an SMS country snapshot."""
     from api_integrations.models import SMSCountrySnapshot
@@ -1531,7 +1608,7 @@ def admin_catalog_sms_country_detail(request, country_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_countries_bulk(request):
     """Bulk toggle is_active for SMS country snapshots."""
     from api_integrations.models import SMSCountrySnapshot
@@ -1550,7 +1627,7 @@ def admin_catalog_sms_countries_bulk(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_services(request):
     """List all synced SMS services with is_active toggle state."""
     from api_integrations.models import SMSServiceSnapshot
@@ -1567,7 +1644,7 @@ def admin_catalog_sms_services(request):
 
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_service_detail(request, sms_service_id):
     """Toggle is_active for an SMS service snapshot."""
     from api_integrations.models import SMSServiceSnapshot
@@ -1586,7 +1663,7 @@ def admin_catalog_sms_service_detail(request, sms_service_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sms_services_bulk(request):
     """Bulk toggle is_active for SMS service snapshots."""
     from api_integrations.models import SMSServiceSnapshot
@@ -1605,7 +1682,7 @@ def admin_catalog_sms_services_bulk(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_catalog_sync(request):
     """Manually trigger service catalog sync from external APIs.
     Runs synchronously so Celery is not required for an initial sync.
@@ -1639,7 +1716,7 @@ def admin_catalog_sync(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_announcements(request):
     from notifications.models import Announcement
 
@@ -1677,7 +1754,7 @@ def admin_announcements(request):
 
 
 @api_view(['PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_announcement_detail(request, announcement_id):
     from notifications.models import Announcement
 
@@ -1713,7 +1790,7 @@ def admin_announcement_detail(request, announcement_id):
 # ---------------------------------------------------------------------------
 
 @api_view(['GET', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_api_logs(request):
     from api_integrations.models import APICallLog
 
@@ -1792,3 +1869,283 @@ def admin_api_logs(request):
         'page_size': page_size,
         'results': data,
     })
+
+
+# ---------------------------------------------------------------------------
+# Admin role info (any staff user)
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_role_info(request):
+    """Return the current admin's role and permissions."""
+    u = request.user
+    return Response({
+        'admin_role': u.admin_role,
+        'is_super_admin': u.is_super_admin,
+        'is_service_admin': u.is_service_admin,
+        'admin_permissions': u.admin_permissions or [],
+        'available_permissions': User.ADMIN_PERMISSION_CHOICES,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Service admin management (super admin only)
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_service_admins(request):
+    """List all service admin users."""
+    admins = User.objects.filter(is_staff=True, admin_role='service_admin').order_by('-date_joined')
+    data = [{
+        'id': u.id,
+        'email': u.email,
+        'username': u.username,
+        'full_name': u.get_full_name(),
+        'admin_permissions': u.admin_permissions or [],
+        'is_active': u.is_active,
+        'date_joined': u.date_joined.isoformat(),
+    } for u in admins]
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_create_service_admin(request):
+    """Create a new service admin account."""
+    email = request.data.get('email', '').strip().lower()
+    username = sanitize_text(request.data.get('username', ''), max_length=150)
+    first_name = sanitize_text(request.data.get('first_name', ''), max_length=MAX_SHORT_TEXT)
+    last_name = sanitize_text(request.data.get('last_name', ''), max_length=MAX_SHORT_TEXT)
+    password = request.data.get('password', '')
+    permissions = request.data.get('admin_permissions', [])
+
+    if not email or not username or not password:
+        return Response({'detail': 'email, username, and password are required.'}, status=400)
+
+    if User.objects.filter(email=email).exists():
+        return Response({'detail': 'A user with this email already exists.'}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({'detail': 'This username is already taken.'}, status=400)
+
+    # Validate permissions
+    valid_perms = User.ADMIN_PERMISSION_CHOICES
+    permissions = [p for p in permissions if p in valid_perms]
+
+    user = User.objects.create_user(
+        email=email,
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        password=password,
+        is_staff=True,
+        admin_role='service_admin',
+        admin_permissions=permissions,
+    )
+    return Response({
+        'id': user.id,
+        'detail': f'Service admin {email} created.',
+    }, status=201)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_update_service_admin(request, user_id):
+    """Update a service admin's permissions or deactivate them."""
+    try:
+        u = User.objects.get(pk=user_id, admin_role='service_admin')
+    except User.DoesNotExist:
+        return Response({'detail': 'Service admin not found.'}, status=404)
+
+    if 'admin_permissions' in request.data:
+        valid_perms = User.ADMIN_PERMISSION_CHOICES
+        permissions = [p for p in request.data['admin_permissions'] if p in valid_perms]
+        u.admin_permissions = permissions
+
+    if 'is_active' in request.data:
+        u.is_active = request.data['is_active']
+
+    if 'first_name' in request.data:
+        u.first_name = sanitize_text(request.data['first_name'], max_length=MAX_SHORT_TEXT)
+    if 'last_name' in request.data:
+        u.last_name = sanitize_text(request.data['last_name'], max_length=MAX_SHORT_TEXT)
+
+    u.save()
+    return Response({
+        'detail': f'Service admin {u.email} updated.',
+        'admin_permissions': u.admin_permissions,
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_delete_service_admin(request, user_id):
+    """Remove service admin role (demotes to regular user, keeps account)."""
+    try:
+        u = User.objects.get(pk=user_id, admin_role='service_admin')
+    except User.DoesNotExist:
+        return Response({'detail': 'Service admin not found.'}, status=404)
+
+    u.is_staff = False
+    u.admin_role = ''
+    u.admin_permissions = []
+    u.save()
+    return Response({'detail': f'{u.email} demoted to regular user.'})
+
+
+# ---------------------------------------------------------------------------
+# Pending submissions (super admin reviews, service admin views own)
+# ---------------------------------------------------------------------------
+
+def _serialize_submission(sub):
+    return {
+        'id': sub.id,
+        'submission_type': sub.submission_type,
+        'submission_type_display': sub.get_submission_type_display(),
+        'data': sub.data,
+        'status': sub.status,
+        'status_display': sub.get_status_display(),
+        'submitted_by': {
+            'id': sub.submitted_by.id,
+            'email': sub.submitted_by.email,
+            'full_name': sub.submitted_by.get_full_name(),
+        },
+        'reviewed_by': {
+            'id': sub.reviewed_by.id,
+            'email': sub.reviewed_by.email,
+        } if sub.reviewed_by else None,
+        'review_note': sub.review_note,
+        'created_at': sub.created_at.isoformat(),
+        'updated_at': sub.updated_at.isoformat(),
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_pending_submissions(request):
+    """List all pending submissions (super admin)."""
+    status_filter = request.query_params.get('status', 'pending')
+    qs = PendingSubmission.objects.select_related('submitted_by', 'reviewed_by')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    data = [_serialize_submission(s) for s in qs[:100]]
+    return Response(data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_review_submission(request, submission_id):
+    """Approve or reject a pending submission."""
+    try:
+        sub = PendingSubmission.objects.get(pk=submission_id)
+    except PendingSubmission.DoesNotExist:
+        return Response({'detail': 'Submission not found.'}, status=404)
+
+    if sub.status != 'pending':
+        return Response({'detail': 'This submission has already been reviewed.'}, status=400)
+
+    action = request.data.get('action')  # 'approve' or 'reject'
+    review_note = sanitize_text(request.data.get('review_note', ''), max_length=MAX_MEDIUM_TEXT)
+
+    if action not in ('approve', 'reject'):
+        return Response({'detail': 'action must be "approve" or "reject".'}, status=400)
+
+    sub.reviewed_by = request.user
+    sub.review_note = review_note
+
+    if action == 'reject':
+        sub.status = 'rejected'
+        sub.save()
+        try:
+            send_submission_reviewed_email(sub)
+        except Exception:
+            pass
+        return Response({'detail': 'Submission rejected.', 'submission': _serialize_submission(sub)})
+
+    # Approve — create the actual resource from the stored data
+    sub.status = 'approved'
+    d = sub.data or {}
+    created_id = None
+
+    if sub.submission_type == 'gift':
+        buying_price_raw = d.get('buying_price')
+        obj = Gift.objects.create(
+            name=sanitize_text(d.get('name', ''), max_length=MAX_SHORT_TEXT),
+            description=sanitize_text(d.get('description', ''), max_length=MAX_MEDIUM_TEXT),
+            price=d.get('price', 0),
+            buying_price=buying_price_raw if buying_price_raw not in (None, '') else None,
+            category=sanitize_text(d.get('category', ''), max_length=MAX_SHORT_TEXT),
+            emoji=sanitize_text(d.get('emoji', ''), max_length=10),
+            color=sanitize_text(d.get('color', ''), max_length=20),
+            image_url=sanitize_url(d.get('image_url', ''), max_length=MAX_URL),
+            delivery_days=d.get('delivery_days', 3),
+            notes=sanitize_text(d.get('notes', ''), max_length=MAX_MEDIUM_TEXT),
+            rating=d.get('rating', 4.5),
+            is_active=d.get('is_active', True),
+        )
+        created_id = obj.id
+
+    elif sub.submission_type == 'boosting_service':
+        obj = BoostingService.objects.create(
+            name=sanitize_text(d.get('name', ''), max_length=MAX_SHORT_TEXT),
+            platform=sanitize_text(d.get('platform', ''), max_length=MAX_SHORT_TEXT),
+            category=sanitize_text(d.get('category', ''), max_length=MAX_SHORT_TEXT),
+            price_per_k=d.get('price_per_k', 0),
+            min_quantity=d.get('min_quantity', 100),
+            max_quantity=d.get('max_quantity', 100000),
+            is_active=d.get('is_active', True),
+        )
+        created_id = obj.id
+
+    elif sub.submission_type == 'social_account':
+        buying_price_raw = d.get('buying_price')
+        required_fields = d.get('required_fields', [])
+        if required_fields and isinstance(required_fields, list):
+            required_fields = [sanitize_text(str(f), max_length=MAX_SHORT_TEXT) for f in required_fields]
+        obj = SocialMediaAccount.objects.create(
+            platform=sanitize_text(d.get('platform', ''), max_length=MAX_SHORT_TEXT),
+            service_name=sanitize_text(d.get('service_name', ''), max_length=MAX_SHORT_TEXT),
+            description=sanitize_text(d.get('description', ''), max_length=MAX_MEDIUM_TEXT),
+            price=d.get('price', 0),
+            buying_price=buying_price_raw if buying_price_raw not in (None, '') else None,
+            notes=sanitize_text(d.get('notes', ''), max_length=MAX_MEDIUM_TEXT),
+            required_fields=required_fields or [],
+            is_active=d.get('is_active', True),
+        )
+        created_id = obj.id
+
+    elif sub.submission_type == 'webdev_portfolio':
+        obj = WebDevPortfolio.objects.create(
+            title=sanitize_text(d.get('title', ''), max_length=MAX_SHORT_TEXT),
+            description=sanitize_text(d.get('description', ''), max_length=MAX_MEDIUM_TEXT),
+            video_url=sanitize_url(d.get('video_url', ''), max_length=MAX_URL),
+            website_url=sanitize_url(d.get('website_url', ''), max_length=MAX_URL),
+            image_url=sanitize_url(d.get('image_url', ''), max_length=MAX_URL),
+            price=d.get('price', 0),
+            category=sanitize_text(d.get('category', ''), max_length=MAX_SHORT_TEXT),
+            is_active=d.get('is_active', True),
+        )
+        created_id = obj.id
+
+    sub.save()
+    try:
+        send_submission_reviewed_email(sub)
+    except Exception:
+        pass
+    return Response({
+        'detail': f'Submission approved. {sub.get_submission_type_display()} created.',
+        'created_id': created_id,
+        'submission': _serialize_submission(sub),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_my_submissions(request):
+    """Service admin views their own submissions."""
+    qs = PendingSubmission.objects.filter(
+        submitted_by=request.user
+    ).select_related('reviewed_by').order_by('-created_at')
+    data = [_serialize_submission(s) for s in qs[:100]]
+    return Response(data)

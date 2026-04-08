@@ -28,9 +28,10 @@ def _send(subject, html_body, to_list, fail_silently=True):
 
 
 def _get_admin_emails():
+    """Return email addresses for super_admin users only."""
     from users.models import User
     return list(
-        User.objects.filter(is_staff=True, is_active=True)
+        User.objects.filter(is_staff=True, is_active=True, admin_role='super_admin')
         .exclude(email='')
         .values_list('email', flat=True)
     )
@@ -232,3 +233,38 @@ def notify_admin_api_downtime(provider, error_message):
         'error_message': str(error_message),
     })
     _send(f'[PriveBoost] API downtime alert: {provider}', html, admin_emails)
+
+
+def notify_admin_new_submission(submission):
+    """Notify super admins when a service admin submits something for approval."""
+    admin_emails = _get_admin_emails()
+    if not admin_emails:
+        return
+    html = render_to_string('emails/admin_new_submission.html', {
+        'submission': submission,
+        'submitter_name': _user_name(submission.submitted_by),
+        'submitter_email': submission.submitted_by.email,
+        'submission_type': submission.get_submission_type_display(),
+        'admin_url': f'{_frontend_url()}/admin/submissions',
+    })
+    _send(
+        f'[PriveBoost] New {submission.get_submission_type_display()} submission awaiting approval',
+        html, admin_emails,
+    )
+
+
+def send_submission_reviewed_email(submission):
+    """Notify a service admin that their submission was approved/rejected."""
+    user = submission.submitted_by
+    action = 'approved' if submission.status == 'approved' else 'rejected'
+    html = render_to_string('emails/submission_reviewed.html', {
+        'name': _user_name(user),
+        'submission_type': submission.get_submission_type_display(),
+        'action': action,
+        'review_note': submission.review_note,
+        'dashboard_url': f'{_frontend_url()}/admin/my-submissions',
+    })
+    _send(
+        f'[PriveBoost] Your {submission.get_submission_type_display()} submission was {action}',
+        html, [user.email],
+    )

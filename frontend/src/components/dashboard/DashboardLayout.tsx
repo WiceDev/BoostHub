@@ -5,7 +5,7 @@ import {
   Bell, ChevronDown, ChevronRight, Menu, Zap, CreditCard, Package, RotateCcw, Info,
   Settings, ShieldCheck, ShieldAlert, Sun, Moon, Search,
   TrendingUp, Phone, UserCheck, Gift, Globe, Wallet, ArrowLeftRight, X,
-  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity, Megaphone
+  Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity, Megaphone, FileText
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { logout as apiLogout, fetchWallet, fetchNotifications, markNotificationsRead, type NotificationsResponse } from "@/lib/api";
@@ -241,22 +241,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {sidebarOpen && (
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 font-semibold px-3 mb-3">Management</p>
             )}
-            <NavLink to="/admin" icon={Crown} label="Dashboard" />
-            <NavLink to="/admin/analytics" icon={BarChart2} label="Analytics" />
-            <NavLink to="/admin/users" icon={Users} label="Manage Users" />
-            <NavLink to="/admin/gifts" icon={Gift} label="Manage Gifts" />
-            <NavLink to="/admin/services" icon={Zap} label="Manage Services" />
-            <NavLink to="/admin/catalog" icon={Database} label="Service Catalog" />
-            <NavLink to="/admin/api-logs" icon={Activity} label="API Logs" />
-            <NavLink to="/admin/accounts" icon={AtSign} label="Social Accounts" />
-            <NavLink to="/admin/webdev" icon={Globe} label="Web Dev Portfolio" />
-            <NavLink to="/admin/orders" icon={Package} label="Manage Orders" />
-            <NavLink to="/admin/deposits" icon={Bitcoin} label="Manage Deposits" />
-            <NavLink to="/admin/security" icon={ShieldX} label="Security" />
-            <NavLink to="/admin/tickets" icon={MessageSquare} label="Support Tickets" />
-            <NavLink to="/admin/announcements" icon={Megaphone} label="Announcements" />
-            <NavLink to="/admin/email" icon={Mail} label="Send Email" />
-            <NavLink to="/admin/settings" icon={Settings} label="Settings" />
+            {user?.is_super_admin && <NavLink to="/admin" icon={Crown} label="Dashboard" />}
+            {user?.is_super_admin && <NavLink to="/admin/analytics" icon={BarChart2} label="Analytics" />}
+            {user?.is_super_admin && <NavLink to="/admin/users" icon={Users} label="Manage Users" />}
+            {(user?.is_super_admin || user?.admin_permissions?.includes('manage_gifts')) && <NavLink to="/admin/gifts" icon={Gift} label="Manage Gifts" />}
+            {(user?.is_super_admin || user?.admin_permissions?.includes('manage_boosting')) && <NavLink to="/admin/services" icon={Zap} label="Manage Services" />}
+            {user?.is_super_admin && <NavLink to="/admin/catalog" icon={Database} label="Service Catalog" />}
+            {user?.is_super_admin && <NavLink to="/admin/api-logs" icon={Activity} label="API Logs" />}
+            {(user?.is_super_admin || user?.admin_permissions?.includes('manage_accounts')) && <NavLink to="/admin/accounts" icon={AtSign} label="Social Accounts" />}
+            {(user?.is_super_admin || user?.admin_permissions?.includes('manage_webdev')) && <NavLink to="/admin/webdev" icon={Globe} label="Web Dev Portfolio" />}
+            {user?.is_super_admin && <NavLink to="/admin/orders" icon={Package} label="Manage Orders" />}
+            {user?.is_super_admin && <NavLink to="/admin/deposits" icon={Bitcoin} label="Manage Deposits" />}
+            {user?.is_super_admin && <NavLink to="/admin/security" icon={ShieldX} label="Security" />}
+            {user?.is_super_admin && <NavLink to="/admin/tickets" icon={MessageSquare} label="Support Tickets" />}
+            {user?.is_super_admin && <NavLink to="/admin/announcements" icon={Megaphone} label="Announcements" />}
+            {user?.is_super_admin && <NavLink to="/admin/email" icon={Mail} label="Send Email" />}
+            {user?.is_super_admin && <NavLink to="/admin/settings" icon={Settings} label="Settings" />}
+            {user?.is_service_admin && <NavLink to="/admin/my-submissions" icon={FileText} label="My Submissions" />}
+            {user?.is_super_admin && <NavLink to="/admin/submissions" icon={FileText} label="Pending Approvals" />}
             <NavLink to="/admin/profile" icon={ShieldCheck} label="My Profile & 2FA" />
           </>
         ) : (
@@ -318,7 +320,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-medium text-foreground truncate">
-                  {isAdminRoute ? "Administrator" : (user?.first_name || user?.email?.split("@")[0])}
+                  {isAdminRoute ? (user?.is_super_admin ? "Super Admin" : "Service Admin") : (user?.first_name || user?.email?.split("@")[0])}
                 </p>
                 <p className="text-[11px] text-muted-foreground truncate">
                   {isAdminRoute ? user?.email : user?.email}

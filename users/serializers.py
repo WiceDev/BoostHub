@@ -10,6 +10,8 @@ _NAME_RE = re.compile(r"^[a-zA-ZÀ-ÿ\s'\-\.]+$")
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    is_super_admin = serializers.BooleanField(read_only=True)
+    is_service_admin = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = User
@@ -17,8 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'first_name', 'last_name',
             'phone', 'is_verified', 'is_staff', 'full_name', 'date_of_birth',
             'created_at', 'referral_code', 'totp_enabled',
+            'admin_role', 'admin_permissions', 'is_super_admin', 'is_service_admin',
         ]
-        read_only_fields = ['id', 'email', 'is_verified', 'is_staff', 'created_at', 'referral_code', 'totp_enabled']
+        read_only_fields = [
+            'id', 'email', 'is_verified', 'is_staff', 'created_at', 'referral_code',
+            'totp_enabled', 'admin_role', 'admin_permissions', 'is_super_admin', 'is_service_admin',
+        ]
 
     def get_full_name(self, obj):
         return obj.get_full_name()

@@ -59,6 +59,10 @@ export interface User {
   created_at: string;
   referral_code: string;
   totp_enabled: boolean;
+  admin_role: '' | 'super_admin' | 'service_admin';
+  admin_permissions: string[];
+  is_super_admin: boolean;
+  is_service_admin: boolean;
 }
 
 export function fetchMe() {
@@ -1129,4 +1133,87 @@ export function fetchAPILogs(params: {
 export function clearAPILogs(provider?: string) {
   const qs = provider ? `?provider=${provider}` : '';
   return request<{ detail: string }>(`/admin/api-logs/${qs}`, { method: 'DELETE' });
+}
+
+// --- Admin Role System ---
+
+export interface AdminRoleInfo {
+  admin_role: string;
+  is_super_admin: boolean;
+  is_service_admin: boolean;
+  admin_permissions: string[];
+  available_permissions: string[];
+}
+
+export interface ServiceAdmin {
+  id: number;
+  email: string;
+  username: string;
+  full_name: string;
+  admin_permissions: string[];
+  is_active: boolean;
+  date_joined: string;
+}
+
+export interface PendingSubmission {
+  id: number;
+  submission_type: string;
+  submission_type_display: string;
+  data: Record<string, unknown>;
+  status: string;
+  status_display: string;
+  submitted_by: { id: number; email: string; full_name: string };
+  reviewed_by: { id: number; email: string } | null;
+  review_note: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function fetchAdminRoleInfo() {
+  return request<AdminRoleInfo>('/admin/role/');
+}
+
+export function fetchServiceAdmins() {
+  return request<ServiceAdmin[]>('/admin/service-admins/');
+}
+
+export function createServiceAdmin(data: {
+  email: string;
+  username: string;
+  first_name?: string;
+  last_name?: string;
+  password: string;
+  admin_permissions: string[];
+}) {
+  return request<{ id: number; detail: string }>('/admin/service-admins/create/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateServiceAdmin(id: number, data: { admin_permissions?: string[]; is_active?: boolean; first_name?: string; last_name?: string }) {
+  return request<{ detail: string; admin_permissions: string[] }>(`/admin/service-admins/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteServiceAdmin(id: number) {
+  return request<{ detail: string }>(`/admin/service-admins/${id}/delete/`, { method: 'DELETE' });
+}
+
+export function fetchPendingSubmissions(status?: string) {
+  const qs = status ? `?status=${status}` : '';
+  return request<PendingSubmission[]>(`/admin/submissions/${qs}`);
+}
+
+export function reviewSubmission(id: number, action: 'approve' | 'reject', review_note?: string) {
+  return request<{ detail: string; created_id?: number; submission: PendingSubmission }>(`/admin/submissions/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action, review_note }),
+  });
+}
+
+export function fetchMySubmissions() {
+  return request<PendingSubmission[]>('/admin/my-submissions/');
 }

@@ -49,6 +49,11 @@ from core.admin_api_views import (
     admin_api_logs,
     admin_announcements,
     admin_announcement_detail,
+    admin_role_info,
+    admin_service_admins, admin_create_service_admin,
+    admin_update_service_admin, admin_delete_service_admin,
+    admin_pending_submissions, admin_review_submission,
+    admin_my_submissions,
 )
 
 
@@ -185,4 +190,14 @@ urlpatterns = [
 
     # API Call Logs
     path('admin/api-logs/', admin_api_logs, name='admin_api_logs'),
+
+    # Admin role system
+    path('admin/role/', admin_role_info, name='admin_role_info'),
+    path('admin/service-admins/', admin_service_admins, name='admin_service_admins'),
+    path('admin/service-admins/create/', admin_create_service_admin, name='admin_create_service_admin'),
+    path('admin/service-admins/<int:user_id>/', admin_update_service_admin, name='admin_update_service_admin'),
+    path('admin/service-admins/<int:user_id>/delete/', admin_delete_service_admin, name='admin_delete_service_admin'),
+    path('admin/submissions/', admin_pending_submissions, name='admin_pending_submissions'),
+    path('admin/submissions/<int:submission_id>/', admin_review_submission, name='admin_review_submission'),
+    path('admin/my-submissions/', admin_my_submissions, name='admin_my_submissions'),
 ]
