@@ -1,0 +1,53 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Provider Alert — PriveBoost Admin{% endblock %}
+{% block preview_text %}Low balance on {{ provider }} — user orders may be failing{% endblock %}
+{% block hero_icon %}&#9888;{% endblock %}
+{% block hero_title %}Provider Low Balance{% endblock %}
+{% block hero_subtitle %}{{ provider }} reported insufficient funds{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
+  Admin Alert
+</p>
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
+  A user order failed because the platform's balance on <strong>{{ provider }}</strong> is too low.
+  Please top up your provider account to prevent further order failures.
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 0 8px 8px 0; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 16px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td style="padding: 6px 0;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Provider:</span>
+            <span style="font-size: 13px; color: #18181b; font-weight: 700; float: right;">{{ provider }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #fecaca;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Failed Order:</span>
+            <span style="font-size: 13px; color: #18181b; font-weight: 700; float: right;">#{{ order_id }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; border-top: 1px solid #fecaca;">
+            <p style="margin: 0 0 4px; font-size: 13px; color: #71717a; font-weight: 600;">Error:</p>
+            <p style="margin: 0; font-size: 13px; color: #991b1b; line-height: 1.6; background-color: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #fecaca;">
+              {{ error_message }}
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.7;">
+  The user has been automatically refunded. Please check your {{ provider }} account balance and top up funds to resume order fulfillment.
+</p>
+{% endblock %}
+
+{% block footer_note %}This is an admin alert — sent to PriveBoost super admins only.{% endblock %}

@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal, ROUND_UP
 from django.core.cache import cache
 from django.conf import settings
@@ -12,6 +13,10 @@ from core.models import PlatformSettings
 from core.sanitizers import sanitize_text, MAX_SHORT_TEXT
 from core.email_utils import send_order_status_email
 from .smspool_client import SMSPoolClient, SMSPoolAPIError
+
+logger = logging.getLogger(__name__)
+
+SERVICE_UNAVAILABLE_MSG = 'This service is temporarily unavailable. Please try again later.'
 
 
 COUNTRIES_CACHE_KEY = 'smspool_countries'
@@ -130,7 +135,8 @@ def api_numbers_countries(request):
         countries = _get_countries_cached()
         return Response(countries)
     except SMSPoolAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+        logger.error(f'Failed to fetch SMS countries: {e}')
+        return Response({'detail': SERVICE_UNAVAILABLE_MSG}, status=503)
 
 
 @api_view(['GET'])
@@ -140,7 +146,8 @@ def api_numbers_services(request):
         services = _get_services_cached()
         return Response(services)
     except SMSPoolAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+        logger.error(f'Failed to fetch SMS services: {e}')
+        return Response({'detail': SERVICE_UNAVAILABLE_MSG}, status=503)
 
 
 @api_view(['POST'])
@@ -155,7 +162,8 @@ def api_numbers_price(request):
         client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
         result = client.get_price(country, service)
     except SMSPoolAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+        logger.error(f'Failed to fetch SMS price: {e}')
+        return Response({'detail': SERVICE_UNAVAILABLE_MSG}, status=503)
 
     usd_price = result.get('price', '0')
     price_ngn, cost_ngn = _calculate_price_ngn(usd_price)
@@ -186,7 +194,8 @@ def api_numbers_order(request):
         client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
         price_result = client.get_price(country, service)
     except SMSPoolAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+        logger.error(f'Failed to fetch SMS price for order: {e}')
+        return Response({'detail': SERVICE_UNAVAILABLE_MSG}, status=503)
 
     usd_price = price_result.get('price', '0')
     price_ngn, cost_ngn = _calculate_price_ngn(usd_price)
@@ -225,12 +234,13 @@ def api_numbers_order(request):
         order.save()
     except SMSPoolAPIError as e:
         error_str = str(e)
-        order.mark_failed(notes=f'SMSPool API error: {error_str}')
+        logger.error(f'SMS order #{order.id} failed: {error_str}')
+        order.mark_failed(notes=f'Provider error: {error_str}')
         if is_provider_insufficient_funds(error_str):
             notify_admins_insufficient_funds('SMSPool', error_str, order.id)
         return Response(
-            {'detail': 'Order failed. Please try again later.'},
-            status=502,
+            {'detail': SERVICE_UNAVAILABLE_MSG},
+            status=503,
         )
 
     data = OrderSerializer(order).data
@@ -310,7 +320,8 @@ def api_numbers_cancel(request, order_id):
             client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
             client.cancel_sms(order.external_order_id)
         except SMSPoolAPIError as e:
-            return Response({'detail': f'Could not cancel: {str(e)}'}, status=400)
+            logger.error(f'Failed to cancel SMS order #{order.id}: {e}')
+            return Response({'detail': 'Unable to cancel this order right now. Please try again later.'}, status=503)
 
     # Refund and mark as cancelled (not failed)
     order.user.wallet.credit(

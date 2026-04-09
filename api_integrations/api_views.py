@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal, ROUND_UP
 from django.core.cache import cache
 from django.conf import settings
@@ -11,6 +12,10 @@ from orders.utils import is_provider_insufficient_funds, notify_admins_insuffici
 from core.models import PlatformSettings
 from core.email_utils import send_order_status_email
 from .rss_client import RSSClient, RSSAPIError
+
+logger = logging.getLogger(__name__)
+
+SERVICE_UNAVAILABLE_MSG = 'This service is temporarily unavailable. Please try again later.'
 
 
 def detect_platform(name: str) -> str:
@@ -106,7 +111,8 @@ def api_boosting_order(request):
     try:
         all_services = _get_services_cached()
     except RSSAPIError as e:
-        return Response({'detail': str(e)}, status=502)
+        logger.error(f'Failed to fetch boosting services: {e}')
+        return Response({'detail': SERVICE_UNAVAILABLE_MSG}, status=503)
 
     service = None
     for s in all_services:
@@ -162,14 +168,15 @@ def api_boosting_order(request):
         order.status = 'processing'
         order.save()
     except RSSAPIError as e:
-        # RSS API failed — refund the user
+        # API failed — refund the user and log internally
         error_str = str(e)
-        order.mark_failed(notes=f'RSS API error: {error_str}')
+        logger.error(f'Boosting order #{order.id} failed: {error_str}')
+        order.mark_failed(notes=f'Provider error: {error_str}')
         if is_provider_insufficient_funds(error_str):
             notify_admins_insufficient_funds('RSS', error_str, order.id)
         return Response(
-            {'detail': 'Order failed. Please try again later.'},
-            status=502,
+            {'detail': SERVICE_UNAVAILABLE_MSG},
+            status=503,
         )
 
     return Response({
