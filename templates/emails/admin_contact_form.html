@@ -1,0 +1,48 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Contact Form — PriveBoost Admin{% endblock %}
+{% block preview_text %}New message from {{ sender_name }} ({{ sender_email }}){% endblock %}
+{% block hero_icon %}&#9993;{% endblock %}
+{% block hero_title %}New Contact Message{% endblock %}
+{% block hero_subtitle %}From {{ sender_name }}{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
+  Admin Notification
+</p>
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
+  Someone submitted a message through the contact form on the landing page.
+</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
+  style="background-color: #f4f4f5; border-radius: 12px; border: 1px solid #e4e4e7; margin-bottom: 28px;">
+  <tr>
+    <td style="padding: 20px 24px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td style="padding: 6px 0;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Name:</span>
+            <span style="font-size: 13px; color: #18181b; font-weight: 700; float: right;">{{ sender_name }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Email:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ sender_email }}</span>
+          </td>
+        </tr>
+      </table>
+      <div style="border-top: 1px solid #e4e4e7; margin-top: 12px; padding-top: 12px;">
+        <p style="margin: 0 0 4px; font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Message:</p>
+        <p style="margin: 0; font-size: 14px; color: #18181b; line-height: 1.7; white-space: pre-line;">{{ message }}</p>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.7;">
+  You can reply directly to <a href="mailto:{{ sender_email }}" style="color: #2563eb; text-decoration: underline;">{{ sender_email }}</a>.
+</p>
+{% endblock %}
+
+{% block footer_note %}This is an admin notification — sent to PriveBoost super admins.{% endblock %}

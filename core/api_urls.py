@@ -21,6 +21,7 @@ from services.api_views import (
 )
 from notifications.api_views import api_notifications, api_mark_notifications_read, sse_notifications, api_announcements
 from api_integrations.api_views import api_boosting_services, api_boosting_order, api_boosting_order_status
+from core.public_views import api_contact
 from api_integrations.smspool_views import (
     api_numbers_countries, api_numbers_services, api_numbers_price,
     api_numbers_order, api_numbers_order_status, api_numbers_cancel,
@@ -132,6 +133,9 @@ urlpatterns = [
 
     # Web Development Portfolio
     path('webdev/', api_webdev_portfolio, name='api_webdev_portfolio'),
+
+    # Contact form
+    path('contact/', api_contact, name='api_contact'),
 
     # Public settings
     path('settings/', api_public_settings, name='api_public_settings'),

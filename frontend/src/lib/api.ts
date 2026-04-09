@@ -1217,3 +1217,11 @@ export function reviewSubmission(id: number, action: 'approve' | 'reject', revie
 export function fetchMySubmissions() {
   return request<PendingSubmission[]>('/admin/my-submissions/');
 }
+
+// Contact form
+export function submitContactForm(name: string, email: string, message: string) {
+  return request<{ detail: string }>('/contact/', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, message }),
+  });
+}

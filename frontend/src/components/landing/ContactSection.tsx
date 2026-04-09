@@ -1,9 +1,41 @@
-import { Mail, MessageCircle, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Mail, MessageCircle, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { submitContactForm } from "@/lib/api";
 
 const ContactSection = () => {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      toast({ title: "Please fill in all fields.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await submitContactForm(name.trim(), email.trim(), message.trim());
+      toast({ title: res.detail || "Message sent successfully!" });
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch (err: any) {
+      toast({
+        title: err?.detail || "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section id="contact" className="min-h-screen flex items-center py-24 bg-surface scroll-mt-16">
       <div className="container mx-auto px-4">
@@ -47,14 +79,27 @@ const ContactSection = () => {
             </div>
           </div>
 
-          <form className="glass-card p-8 space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="glass-card p-8 space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="contact-name">Name</Label>
-              <Input id="contact-name" placeholder="Your name" />
+              <Input
+                id="contact-name"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact-email">Email</Label>
-              <Input id="contact-email" type="email" placeholder="you@example.com" />
+              <Input
+                id="contact-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact-message">Message</Label>
@@ -62,10 +107,22 @@ const ContactSection = () => {
                 id="contact-message"
                 placeholder="How can we help you?"
                 rows={4}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                disabled={loading}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
               />
             </div>
-            <Button className="w-full shadow-blue">Send Message</Button>
+            <Button className="w-full shadow-blue" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Message"
+              )}
+            </Button>
           </form>
         </div>
       </div>
