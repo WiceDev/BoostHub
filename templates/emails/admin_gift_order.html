@@ -7,59 +7,59 @@
 {% block hero_subtitle %}Order #{{ order_id }} — needs manual processing{% endblock %}
 
 {% block body_content %}
-<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
   Admin Notification
 </p>
-<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
   A user has placed a gift order that requires manual processing and fulfillment.
 </p>
 
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-  style="background-color: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+  style="background-color: #f4f4f5; border-radius: 12px; border: 1px solid #e4e4e7; margin-bottom: 28px;">
   <tr>
     <td style="padding: 20px 24px;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
           <td style="padding: 6px 0;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Order ID:</span>
-            <span style="font-size: 13px; color: #111827; font-weight: 700; float: right;">#{{ order_id }}</span>
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Order ID:</span>
+            <span style="font-size: 13px; color: #18181b; font-weight: 700; float: right;">#{{ order_id }}</span>
           </td>
         </tr>
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Customer:</span>
-            <span style="font-size: 13px; color: #111827; float: right;">{{ user_email }}</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Customer:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ user_email }}</span>
           </td>
         </tr>
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Gift:</span>
-            <span style="font-size: 13px; color: #111827; float: right;">{{ gift_name }}</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Gift:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ gift_name }}</span>
           </td>
         </tr>
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Amount:</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Amount:</span>
             <span style="font-size: 13px; color: #059669; font-weight: 700; float: right;">&#8358;{{ amount }}</span>
           </td>
         </tr>
       </table>
-      <div style="border-top: 1px solid #e5e7eb; margin-top: 12px; padding-top: 12px;">
-        <p style="margin: 0 0 8px; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Delivery Details:</p>
+      <div style="border-top: 1px solid #e4e4e7; margin-top: 12px; padding-top: 12px;">
+        <p style="margin: 0 0 8px; font-size: 12px; color: #71717a; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">Delivery Details:</p>
         <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
           <tr>
-            <td style="padding: 4px 0; font-size: 13px; color: #6b7280;">Recipient:</td>
-            <td style="padding: 4px 0; font-size: 13px; color: #111827; text-align: right;">{{ recipient_name }}</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #71717a;">Recipient:</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #18181b; text-align: right;">{{ recipient_name }}</td>
           </tr>
           <tr>
-            <td style="padding: 4px 0; font-size: 13px; color: #6b7280;">Phone:</td>
-            <td style="padding: 4px 0; font-size: 13px; color: #111827; text-align: right;">{{ recipient_phone }}</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #71717a;">Phone:</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #18181b; text-align: right;">{{ recipient_phone }}</td>
           </tr>
           <tr>
-            <td style="padding: 4px 0; font-size: 13px; color: #6b7280;" colspan="2">Address:</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #71717a;" colspan="2">Address:</td>
           </tr>
           <tr>
-            <td style="padding: 4px 0; font-size: 13px; color: #111827;" colspan="2">{{ delivery_address }}</td>
+            <td style="padding: 4px 0; font-size: 13px; color: #18181b;" colspan="2">{{ delivery_address }}</td>
           </tr>
         </table>
       </div>
@@ -72,7 +72,7 @@
     <td align="center">
       <a href="{{ admin_url }}"
         class="btn-mobile"
-        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px;">
+        style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 44px; border-radius: 10px;">
         Process Order &#8594;
       </a>
     </td>

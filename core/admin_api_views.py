@@ -1238,12 +1238,12 @@ def admin_send_email(request):
     )
     styled_body = _re.sub(
         r'<h2(?=[ >])',
-        '<h2 style="margin: 24px 0 8px; font-size: 20px; font-weight: 700; color: #111827;"',
+        '<h2 style="margin: 24px 0 8px; font-size: 20px; font-weight: 700; color: #18181b;"',
         styled_body,
     )
     styled_body = _re.sub(
         r'<h3(?=[ >])',
-        '<h3 style="margin: 20px 0 6px; font-size: 17px; font-weight: 600; color: #111827;"',
+        '<h3 style="margin: 20px 0 6px; font-size: 17px; font-weight: 600; color: #18181b;"',
         styled_body,
     )
     styled_body = _re.sub(
@@ -1263,7 +1263,7 @@ def admin_send_email(request):
     )
     styled_body = _re.sub(
         r'<a ',
-        '<a style="color: #1a56db; text-decoration: underline;" ',
+        '<a style="color: #2563eb; text-decoration: underline;" ',
         styled_body,
     )
 

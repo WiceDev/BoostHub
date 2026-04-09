@@ -7,41 +7,41 @@
 {% block hero_subtitle %}&#8358;{{ amount }} via {{ method }}{% endblock %}
 
 {% block body_content %}
-<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
   Admin Notification
 </p>
-<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
   A deposit has been confirmed and credited to a user's wallet.
 </p>
 
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%"
-  style="background-color: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 28px;">
+  style="background-color: #f4f4f5; border-radius: 12px; border: 1px solid #e4e4e7; margin-bottom: 28px;">
   <tr>
     <td style="padding: 20px 24px;">
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
         <tr>
           <td style="padding: 6px 0;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">User:</span>
-            <span style="font-size: 13px; color: #111827; float: right;">{{ user_email }}</span>
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">User:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ user_email }}</span>
           </td>
         </tr>
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Amount:</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Amount:</span>
             <span style="font-size: 13px; color: #059669; font-weight: 700; float: right;">&#8358;{{ amount }}</span>
           </td>
         </tr>
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Method:</span>
-            <span style="font-size: 13px; color: #111827; float: right;">{{ method }}</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Method:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ method }}</span>
           </td>
         </tr>
         {% if reference %}
         <tr>
-          <td style="padding: 6px 0; border-top: 1px solid #e5e7eb;">
-            <span style="font-size: 13px; color: #6b7280; font-weight: 600;">Reference:</span>
-            <span style="font-size: 13px; color: #111827; float: right;">{{ reference }}</span>
+          <td style="padding: 6px 0; border-top: 1px solid #e4e4e7;">
+            <span style="font-size: 13px; color: #71717a; font-weight: 600;">Reference:</span>
+            <span style="font-size: 13px; color: #18181b; float: right;">{{ reference }}</span>
           </td>
         </tr>
         {% endif %}
@@ -55,7 +55,7 @@
     <td align="center">
       <a href="{{ admin_url }}"
         class="btn-mobile"
-        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px;">
+        style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 44px; border-radius: 10px;">
         View Deposits &#8594;
       </a>
     </td>

@@ -7,10 +7,10 @@
 {% block hero_subtitle %}{{ provider }} is unreachable or returning errors{% endblock %}
 
 {% block body_content %}
-<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
   Admin Alert
 </p>
-<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
   An external API provider is experiencing connectivity issues. User orders may be affected.
 </p>
 
@@ -19,14 +19,14 @@
   <tr>
     <td style="padding: 16px;">
       <p style="margin: 0 0 8px; font-size: 14px; color: #991b1b; font-weight: 700;">{{ provider }}</p>
-      <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.6; background-color: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #fecaca;">
+      <p style="margin: 0; font-size: 13px; color: #3f3f46; line-height: 1.6; background-color: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #fecaca;">
         {{ error_message }}
       </p>
     </td>
   </tr>
 </table>
 
-<p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.7;">
+<p style="margin: 0; font-size: 14px; color: #71717a; line-height: 1.7;">
   Please check the provider's status and ensure API keys are valid. Pending orders for this provider may need manual attention.
 </p>
 {% endblock %}

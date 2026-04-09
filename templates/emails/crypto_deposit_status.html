@@ -7,12 +7,12 @@
 {% block hero_subtitle %}{{ crypto_name }} deposit #{{ deposit_id }}{% endblock %}
 
 {% block body_content %}
-<p style="margin: 0 0 18px; font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">
+<p style="margin: 0 0 18px; font-size: 16px; color: #18181b; font-weight: 600; line-height: 1.5;">
   Hi {{ first_name }},
 </p>
 
 {% if action == 'confirm' %}
-<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
   Your crypto deposit has been verified and approved. The equivalent amount has been credited to your wallet.
 </p>
 
@@ -27,7 +27,7 @@
   </tr>
 </table>
 {% else %}
-<p style="margin: 0 0 24px; font-size: 15px; color: #4b5563; line-height: 1.7;">
+<p style="margin: 0 0 24px; font-size: 15px; color: #52525b; line-height: 1.7;">
   Unfortunately, your crypto deposit could not be verified and has been rejected.
 </p>
 
@@ -37,7 +37,7 @@
   <tr>
     <td style="padding: 14px 16px;">
       <p style="margin: 0 0 4px; font-size: 13px; color: #991b1b; font-weight: 600;">Reason:</p>
-      <p style="margin: 0; font-size: 13px; color: #374151; line-height: 1.6;">{{ admin_note }}</p>
+      <p style="margin: 0; font-size: 13px; color: #3f3f46; line-height: 1.6;">{{ admin_note }}</p>
     </td>
   </tr>
 </table>
@@ -49,7 +49,7 @@
     <td align="center">
       <a href="{{ wallet_url }}"
         class="btn-mobile"
-        style="display: inline-block; background-color: #1a56db; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 15px 44px; border-radius: 10px; letter-spacing: 0.2px; box-shadow: 0 4px 14px rgba(26,86,219,0.35);">
+        style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 44px; border-radius: 10px; letter-spacing: 0.2px;">
         {% if action == 'confirm' %}View My Wallet &#8594;{% else %}Contact Support{% endif %}
       </a>
     </td>
