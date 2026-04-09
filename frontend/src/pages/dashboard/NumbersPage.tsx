@@ -142,6 +142,7 @@ const NumbersPage = () => {
   const [service, setService] = useState("");
   const [purchasing, setPurchasing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelCooldown, setCancelCooldown] = useState(0);
 
   // Active order state
   const [pageState, setPageState] = useState<PageState>("browse");
@@ -197,6 +198,13 @@ const NumbersPage = () => {
     return () => clearInterval(timer);
   }, [pageState, countdown]);
 
+  // Cancel cooldown — 30s after purchase before cancel is allowed
+  useEffect(() => {
+    if (cancelCooldown <= 0) return;
+    const timer = setInterval(() => setCancelCooldown((prev) => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [cancelCooldown]);
+
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
@@ -249,6 +257,7 @@ const NumbersPage = () => {
       setPhoneNumber(result.phone_number);
       setSmsCode(null);
       setCountdown(20 * 60);
+      setCancelCooldown(30);
       setPageState("waiting");
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
       toast.success("Number purchased! Waiting for SMS code...");
@@ -388,11 +397,11 @@ const NumbersPage = () => {
           <Button
             variant="outline"
             onClick={handleCancel}
-            disabled={cancelling}
+            disabled={cancelling || cancelCooldown > 0}
             className="text-destructive border-destructive/30 hover:bg-destructive/5"
           >
             {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
-            Cancel & Refund
+            {cancelCooldown > 0 ? `Cancel in ${cancelCooldown}s` : "Cancel & Refund"}
           </Button>
         </div>
       )}

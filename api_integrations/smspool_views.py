@@ -315,6 +315,16 @@ def api_numbers_cancel(request, order_id):
     if order.status not in ('pending', 'processing'):
         return Response({'detail': 'This order cannot be cancelled.'}, status=400)
 
+    # Enforce 30-second cooldown after order creation
+    from django.utils import timezone
+    elapsed = (timezone.now() - order.created_at).total_seconds()
+    if elapsed < 30:
+        wait = int(30 - elapsed)
+        return Response(
+            {'detail': f'Please wait {wait} seconds before cancelling.', 'wait_seconds': wait},
+            status=429,
+        )
+
     if order.external_order_id:
         try:
             client = SMSPoolClient(triggered_by=f'user:{request.user.id}')
