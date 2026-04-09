@@ -1,11 +1,12 @@
 import logging
-from django.core.cache import cache
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
+from django.core.mail import EmailMessage
+from django.conf import settings
 from django.template.loader import render_to_string
-from core.email_utils import _send, _get_admin_emails
+from core.email_utils import _get_admin_emails
 from core.sanitizers import sanitize_text, MAX_SHORT_TEXT, MAX_LONG_TEXT
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def api_contact(request):
 
     admin_emails = _get_admin_emails()
     if not admin_emails:
-        logger.error('Contact form: no admin emails configured')
+        logger.error('Contact form: no super admin emails configured')
         return Response({'detail': 'Message sent successfully.'})
 
     html_body = render_to_string('emails/admin_contact_form.html', {
@@ -41,10 +42,21 @@ def api_contact(request):
         'message': message,
     })
 
-    _send(
-        subject=f'[PriveBoost] Contact Form — {name}',
-        html_body=html_body,
-        to_list=admin_emails,
-    )
+    try:
+        msg = EmailMessage(
+            subject=f'[PriveBoost] Contact Form — {name}',
+            body=html_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=admin_emails,
+            reply_to=[email],
+        )
+        msg.content_subtype = 'html'
+        msg.send(fail_silently=False)
+    except Exception as e:
+        logger.error(f'Contact form email failed: {e}')
+        return Response(
+            {'detail': 'Unable to send your message right now. Please try again later.'},
+            status=503,
+        )
 
     return Response({'detail': 'Message sent successfully.'})
