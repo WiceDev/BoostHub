@@ -16,6 +16,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import WebDevelopment from "./pages/WebDevelopment";
 import Services from "./pages/Services";
+import Legal from "./pages/Legal";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import DepositPage from "./pages/dashboard/DepositPage";
@@ -129,6 +130,7 @@ const App = () => (
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/services" element={<Services />} />
             <Route path="/web-development" element={<WebDevelopment />} />
+            <Route path="/legal" element={<Legal />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout><DashboardHome /></DashboardLayout></ProtectedRoute>} />
             <Route path="/dashboard/wallet" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/deposit" element={<ProtectedRoute><DashboardLayout><DepositPage /></DashboardLayout></ProtectedRoute>} />

@@ -21,27 +21,27 @@ const Footer = () => {
           <div>
             <h4 className="text-sm font-semibold text-background mb-4">Products</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/services" className="text-sm hover:text-background transition-colors">Social Boosting</Link>
-              <Link to="/services" className="text-sm hover:text-background transition-colors">Verification Numbers</Link>
-              <Link to="/services" className="text-sm hover:text-background transition-colors">Web Development</Link>
+              <Link to="/login" className="text-sm hover:text-background transition-colors">Social Boosting</Link>
+              <Link to="/login" className="text-sm hover:text-background transition-colors">Verification Numbers</Link>
+              <Link to="/web-development" className="text-sm hover:text-background transition-colors">Web Development</Link>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-background mb-4">Company</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/" className="text-sm hover:text-background transition-colors">About Us</Link>
-              <Link to="/" className="text-sm hover:text-background transition-colors">Contact</Link>
-              <Link to="/" className="text-sm hover:text-background transition-colors">Support</Link>
+              <a href="/#about" className="text-sm hover:text-background transition-colors">About Us</a>
+              <a href="/#contact" className="text-sm hover:text-background transition-colors">Contact</a>
+              <a href="/#contact" className="text-sm hover:text-background transition-colors">Support</a>
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-semibold text-background mb-4">Legal</h4>
             <div className="flex flex-col gap-2">
-              <Link to="/" className="text-sm hover:text-background transition-colors">Privacy Policy</Link>
-              <Link to="/" className="text-sm hover:text-background transition-colors">Terms of Service</Link>
-              <Link to="/" className="text-sm hover:text-background transition-colors">Refund Policy</Link>
+              <Link to="/legal#privacy" className="text-sm hover:text-background transition-colors">Privacy Policy</Link>
+              <Link to="/legal#terms" className="text-sm hover:text-background transition-colors">Terms of Service</Link>
+              <Link to="/legal#refund" className="text-sm hover:text-background transition-colors">Refund Policy</Link>
             </div>
           </div>
         </div>
