@@ -6,7 +6,6 @@ from rest_framework.throttling import AnonRateThrottle
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.template.loader import render_to_string
-from core.email_utils import _get_admin_emails
 from core.sanitizers import sanitize_text, MAX_SHORT_TEXT, MAX_LONG_TEXT
 
 logger = logging.getLogger(__name__)
@@ -31,10 +30,7 @@ def api_contact(request):
     if '@' not in email or '.' not in email:
         return Response({'detail': 'Please enter a valid email address.'}, status=400)
 
-    admin_emails = _get_admin_emails()
-    if not admin_emails:
-        logger.error('Contact form: no super admin emails configured')
-        return Response({'detail': 'Message sent successfully.'})
+    admin_emails = [settings.CONTACT_FORM_EMAIL]
 
     html_body = render_to_string('emails/admin_contact_form.html', {
         'sender_name': name,
