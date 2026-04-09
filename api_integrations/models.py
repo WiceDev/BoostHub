@@ -64,7 +64,7 @@ class BoostingServiceSnapshot(models.Model):
     max_quantity = models.IntegerField(default=10000)
     refill = models.BooleanField(default=False)
     cancel = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True, db_index=True)
+    is_active = models.BooleanField(default=False, db_index=True)
     last_synced = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -82,7 +82,7 @@ class SMSCountrySnapshot(models.Model):
     name = models.CharField(max_length=200)
     short_name = models.CharField(max_length=10, blank=True)
     dial_code = models.CharField(max_length=10, blank=True)
-    is_active = models.BooleanField(default=True, db_index=True)
+    is_active = models.BooleanField(default=False, db_index=True)
     last_synced = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -99,7 +99,7 @@ class SMSServiceSnapshot(models.Model):
     external_id = models.CharField(max_length=50, unique=True, db_index=True)
     name = models.CharField(max_length=500)
     short_name = models.CharField(max_length=100, blank=True)
-    is_active = models.BooleanField(default=True, db_index=True)
+    is_active = models.BooleanField(default=False, db_index=True)
     last_synced = models.DateTimeField(auto_now=True)
 
     class Meta:
