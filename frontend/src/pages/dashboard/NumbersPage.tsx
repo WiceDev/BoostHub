@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Phone, Loader2, AlertTriangle, CheckCircle2, Copy,
   Wallet, X, Clock, ShieldCheck, ChevronDown, Check,
-  RotateCcw, ChevronsUpDown, Search,
+  RotateCcw, ChevronsUpDown, Search, LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,34 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type PageState = "browse" | "waiting" | "completed" | "failed";
+
+const STORAGE_KEY = "priveboost_sms_active_order";
+
+interface ActiveOrderData {
+  orderId: number;
+  phoneNumber: string;
+  countryId: string;
+  serviceId: string;
+  purchasedAt: number; // timestamp ms
+}
+
+function saveActiveOrder(data: ActiveOrderData) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadActiveOrder(): ActiveOrderData | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearActiveOrder() {
+  sessionStorage.removeItem(STORAGE_KEY);
+}
 
 interface SearchableDropdownProps<T extends { id: string; name: string }> {
   items: T[];
@@ -120,6 +148,9 @@ function isWithin72Hours(dateStr: string): boolean {
   return Date.now() - created < 72 * 60 * 60 * 1000;
 }
 
+const SMS_EXPIRY_SECONDS = 20 * 60; // 20 minutes
+const CANCEL_COOLDOWN_SECONDS = 30;
+
 const numberStatusColors: Record<string, string> = {
   completed:  "bg-success/10 text-success border-success/20",
   processing: "bg-primary/10 text-primary border-primary/20",
@@ -149,7 +180,8 @@ const NumbersPage = () => {
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [smsCode, setSmsCode] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(20 * 60);
+  const [countdown, setCountdown] = useState(SMS_EXPIRY_SECONDS);
+  const [purchasedAt, setPurchasedAt] = useState<number | null>(null);
 
   const { data: numberOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", "phone_number"],
@@ -190,6 +222,35 @@ const NumbersPage = () => {
     refetchInterval: 5000,
   });
 
+  // Restore active order from sessionStorage on mount
+  useEffect(() => {
+    const saved = loadActiveOrder();
+    if (!saved) return;
+
+    const elapsed = Math.floor((Date.now() - saved.purchasedAt) / 1000);
+    const remaining = SMS_EXPIRY_SECONDS - elapsed;
+
+    if (remaining <= 0) {
+      // Order has expired, clear storage
+      clearActiveOrder();
+      return;
+    }
+
+    setActiveOrderId(saved.orderId);
+    setPhoneNumber(saved.phoneNumber);
+    setCountry(saved.countryId);
+    setService(saved.serviceId);
+    setPurchasedAt(saved.purchasedAt);
+    setCountdown(remaining);
+    setPageState("waiting");
+
+    // Restore cancel cooldown if still within 30s
+    const cancelRemaining = CANCEL_COOLDOWN_SECONDS - elapsed;
+    if (cancelRemaining > 0) {
+      setCancelCooldown(cancelRemaining);
+    }
+  }, []);
+
   // Countdown timer — ticks every second while waiting
   useEffect(() => {
     if (pageState !== "waiting") return;
@@ -217,10 +278,14 @@ const NumbersPage = () => {
     if (statusData.sms_code) {
       setSmsCode(statusData.sms_code);
       setPageState("completed");
+      clearActiveOrder();
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
-    } else if (statusData.status === "failed") {
+      queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
+    } else if (statusData.status === "failed" || statusData.status === "cancelled" || statusData.status === "refunded") {
       setPageState("failed");
+      clearActiveOrder();
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
     }
   }, [statusData, queryClient]);
 
@@ -241,6 +306,45 @@ const NumbersPage = () => {
     toast.info("Service pre-selected. Review price and click Buy Number.");
   };
 
+  // Resume waiting view for a processing order from the table
+  const handleResumeOrder = (order: Order) => {
+    const extData = order.external_data as Record<string, string>;
+    const orderPhone = extData?.phone_number || "";
+    const countryId = extData?.smspool_country || "";
+    const serviceId = extData?.smspool_service || "";
+
+    const createdMs = new Date(order.created_at).getTime();
+    const elapsed = Math.floor((Date.now() - createdMs) / 1000);
+    const remaining = SMS_EXPIRY_SECONDS - elapsed;
+
+    if (remaining <= 0) {
+      toast.error("This number has expired.");
+      return;
+    }
+
+    setActiveOrderId(order.id);
+    setPhoneNumber(orderPhone);
+    setCountry(countryId);
+    setService(serviceId);
+    setPurchasedAt(createdMs);
+    setCountdown(remaining);
+    setSmsCode(null);
+    setPageState("waiting");
+
+    const cancelRemaining = CANCEL_COOLDOWN_SECONDS - elapsed;
+    setCancelCooldown(cancelRemaining > 0 ? cancelRemaining : 0);
+
+    saveActiveOrder({
+      orderId: order.id,
+      phoneNumber: orderPhone,
+      countryId,
+      serviceId,
+      purchasedAt: createdMs,
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handlePurchase = async () => {
     if (!country || !service || !canAfford) return;
     setPurchasing(true);
@@ -253,14 +357,25 @@ const NumbersPage = () => {
         country_short_name: selectedCountry?.short_name || "",
         dial_code: selectedCountry?.dial_code || "",
       });
+      const now = Date.now();
       setActiveOrderId(result.order.id);
       setPhoneNumber(result.phone_number);
       setSmsCode(null);
-      setCountdown(20 * 60);
-      setCancelCooldown(30);
+      setCountdown(SMS_EXPIRY_SECONDS);
+      setCancelCooldown(CANCEL_COOLDOWN_SECONDS);
+      setPurchasedAt(now);
       setPageState("waiting");
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
       toast.success("Number purchased! Waiting for SMS code...");
+
+      saveActiveOrder({
+        orderId: result.order.id,
+        phoneNumber: result.phone_number,
+        countryId: country,
+        serviceId: service,
+        purchasedAt: now,
+      });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to purchase number.";
       toast.error(msg);
@@ -273,15 +388,41 @@ const NumbersPage = () => {
     setCancelling(true);
     try {
       await cancelSMSOrder(activeOrderId);
+      clearActiveOrder();
       setPageState("browse");
       setActiveOrderId(null);
       queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
       toast.success("Order cancelled and refunded.");
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to cancel order.";
       toast.error(msg);
     }
     setCancelling(false);
+  };
+
+  // Handle cancelling directly from the orders table
+  const handleTableCancel = async (orderId: number) => {
+    setCancelling(true);
+    try {
+      await cancelSMSOrder(orderId);
+      queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
+      toast.success("Order cancelled and refunded.");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to cancel order.";
+      toast.error(msg);
+    }
+    setCancelling(false);
+  };
+
+  const handleExit = () => {
+    clearActiveOrder();
+    setPageState("browse");
+    setActiveOrderId(null);
+    setPhoneNumber("");
+    setSmsCode(null);
+    queryClient.invalidateQueries({ queryKey: ["orders", "phone_number"] });
   };
 
   const handleCopyCode = useCallback(() => {
@@ -303,6 +444,7 @@ const NumbersPage = () => {
   }, [phoneNumber, selectedCountry]);
 
   const resetToBrowse = () => {
+    clearActiveOrder();
     setPageState("browse");
     setActiveOrderId(null);
     setPhoneNumber("");
@@ -394,15 +536,25 @@ const NumbersPage = () => {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={handleCancel}
-            disabled={cancelling || cancelCooldown > 0}
-            className="text-destructive border-destructive/30 hover:bg-destructive/5"
-          >
-            {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
-            {cancelCooldown > 0 ? `Cancel in ${cancelCooldown}s` : "Cancel & Refund"}
-          </Button>
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleExit}
+              className="text-muted-foreground"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Exit
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={cancelling || cancelCooldown > 0}
+              className="text-destructive border-destructive/30 hover:bg-destructive/5"
+            >
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
+              {cancelCooldown > 0 ? `Cancel in ${cancelCooldown}s` : "Cancel & Refund"}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -669,10 +821,12 @@ const NumbersPage = () => {
                       ? `+${dialCode}${rawNumber.replace(/^\+/, "")}`
                       : `+${rawNumber.replace(/^\+/, "")}`
                     : "";
-                  const smsCode = extData?.sms_code || order.result || null;
+                  const orderSmsCode = extData?.sms_code || order.result || null;
                   const countryName = extData?.country_name || "—";
                   const serviceName = extData?.service_name || "—";
                   const canReorder = order.status === "completed" && isWithin72Hours(order.created_at);
+                  const isProcessing = order.status === "processing" || order.status === "pending";
+                  const isActiveWaiting = activeOrderId === order.id && pageState === "waiting";
                   return (
                     <tr
                       key={order.id}
@@ -693,11 +847,11 @@ const NumbersPage = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {smsCode ? (
+                        {orderSmsCode ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-mono font-bold text-success">{smsCode}</span>
+                            <span className="text-sm font-mono font-bold text-success">{orderSmsCode}</span>
                             <button
-                              onClick={() => { navigator.clipboard.writeText(smsCode); toast.success("Code copied!"); }}
+                              onClick={() => { navigator.clipboard.writeText(orderSmsCode); toast.success("Code copied!"); }}
                               className="p-1 rounded hover:bg-muted/50 transition-colors"
                             >
                               <Copy className="h-3 w-3 text-muted-foreground" />
@@ -718,7 +872,24 @@ const NumbersPage = () => {
                         {new Date(order.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
                       <td className="px-6 py-4">
-                        {canReorder ? (
+                        {isProcessing && !isActiveWaiting ? (
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleResumeOrder(order)} className="h-8 text-xs gap-1.5">
+                              <Phone className="h-3.5 w-3.5" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTableCancel(order.id)}
+                              disabled={cancelling}
+                              className="h-8 text-xs gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : canReorder ? (
                           <Button size="sm" variant="outline" onClick={() => handleGetNewCode(order)} className="h-8 text-xs gap-1.5">
                             <RotateCcw className="h-3.5 w-3.5" />
                             New Code
