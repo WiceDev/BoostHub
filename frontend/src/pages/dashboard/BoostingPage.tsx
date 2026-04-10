@@ -539,7 +539,7 @@ const BoostingPage = () => {
 
       {/* Order Dialog */}
       <Dialog open={!!selectedService && !orderSuccess} onOpenChange={() => setSelectedService(null)}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedService && (
@@ -647,12 +647,12 @@ const BoostingPage = () => {
             </div>
           )}
 
-          <DialogFooter className="flex-shrink-0">
-            <Button variant="outline" onClick={() => setSelectedService(null)}>Cancel</Button>
+          <DialogFooter className="flex-shrink-0 gap-3 sm:gap-3">
+            <Button variant="outline" onClick={() => setSelectedService(null)} className="flex-1 sm:flex-none">Cancel</Button>
             <Button
               onClick={handlePlaceOrder}
               disabled={ordering || !link.trim() || !qtyValid || !canAfford}
-              className="shadow-lg text-white bg-primary"
+              className="shadow-lg text-white bg-primary flex-1 sm:flex-none"
             >
               {ordering ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
               Place Order
