@@ -8,7 +8,7 @@ import {
   Users, Crown, AtSign, Mail, Bitcoin, ShieldX, BarChart2, MessageSquare, Database, Activity, Megaphone, FileText, Shield
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { logout as apiLogout, fetchWallet, fetchNotifications, markNotificationsRead, type NotificationsResponse } from "@/lib/api";
+import { logout as apiLogout, fetchWallet, fetchNotifications, markNotificationsRead } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/context/ThemeContext";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -69,69 +69,35 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     enabled: !isAdminRoute,
   });
 
+  // Track previous unread count to show toast for new notifications
+  const prevUnreadRef = useRef<number | null>(null);
+
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
     enabled: !isAdminRoute,
-    staleTime: Infinity, // SSE keeps it fresh — no background refetching needed
+    refetchInterval: 15000, // poll every 15 seconds
   });
 
   const notifications = notifData?.notifications || [];
   const unreadCount = notifData?.unread_count || 0;
 
-  // ── Real-time notifications via Server-Sent Events ──────────────────────
+  // Show toast when new notifications arrive via polling
   useEffect(() => {
-    if (isAdminRoute || !user) return;
-
-    let es: EventSource | null = null;
-    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
-
-    const connect = () => {
-      es = new EventSource('/api/notifications/stream/', { withCredentials: true });
-
-      // Connection confirmed — do one fresh fetch to sync any missed notifications
-      es.addEventListener('ping', () => {
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    if (prevUnreadRef.current === null) {
+      // First load — just store the count, don't toast
+      prevUnreadRef.current = unreadCount;
+      return;
+    }
+    if (unreadCount > prevUnreadRef.current && notifications.length > 0) {
+      const newest = notifications[0];
+      toast.info(newest.title, {
+        description: newest.message,
+        duration: 5000,
       });
-
-      // New notification pushed from server
-      es.addEventListener('notification', (e: MessageEvent) => {
-        try {
-          const notif = JSON.parse(e.data);
-
-          // Prepend to cached list and bump unread count
-          queryClient.setQueryData(['notifications'], (old: NotificationsResponse | undefined) => {
-            if (!old) return old;
-            const already = old.notifications.some((n) => n.id === notif.id);
-            if (already) return old;
-            return {
-              notifications: [notif, ...old.notifications].slice(0, 10),
-              unread_count: old.unread_count + 1,
-            };
-          });
-
-          // Pop a toast so the user is alerted even when the panel is closed
-          toast.info(notif.title, {
-            description: notif.message,
-            duration: 5000,
-          });
-        } catch { /* ignore malformed event */ }
-      });
-
-      es.onerror = () => {
-        es?.close();
-        // Reconnect after 5 s — browser also auto-retries but this is explicit
-        retryTimeout = setTimeout(connect, 5000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      es?.close();
-      if (retryTimeout) clearTimeout(retryTimeout);
-    };
-  }, [isAdminRoute, user, queryClient]);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount, notifications]);
 
   useEffect(() => {
     if (serviceItems.some((s) => location.pathname === s.path)) {
