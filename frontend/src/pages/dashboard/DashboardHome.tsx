@@ -301,7 +301,7 @@ const DashboardHome = () => {
             <div className="min-w-0">
               <p className="text-muted-foreground text-xs sm:text-sm font-medium">Welcome back,</p>
               <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold text-foreground mt-0.5 truncate">
-                {user?.first_name || "there"} {user?.last_name?.[0] ? user.last_name[0] + "." : ""}
+                {user?.first_name || "there"}
               </h1>
               <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 hidden sm:block">Here's your account overview</p>
             </div>
