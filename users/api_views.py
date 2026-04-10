@@ -10,8 +10,9 @@ from .serializers import (
     UserSerializer, RegisterSerializer, LoginSerializer,
     ProfileUpdateSerializer, ChangePasswordSerializer,
 )
+from django.core.cache import cache
 from core.recaptcha import verify_recaptcha
-from core.middleware import log_ip_action
+from core.middleware import log_ip_action, get_client_ip
 from .verification import send_verification_email, send_welcome_email, verify_token
 from .password_reset import send_reset_email, verify_reset_token
 from .models import User
@@ -22,9 +23,26 @@ from core.email_utils import notify_admin_new_user, send_password_changed_email
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_register(request):
+    # Rate limit: 3 registrations per IP per hour
+    ip = get_client_ip(request)
+    reg_key = f'register_rl:{ip}'
+    reg_count = cache.get(reg_key, 0)
+    if reg_count >= 3:
+        return Response(
+            {'detail': 'Too many registration attempts. Please try again later.'},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.save()
+
+    # Increment registration counter
+    if cache.get(reg_key) is None:
+        cache.set(reg_key, 1, 3600)
+    else:
+        cache.incr(reg_key)
+
     login(request, user)
     log_ip_action(request, 'register', user=user)
     # Send verification email + notify admin
@@ -68,9 +86,56 @@ def api_resend_verification(request):
     return Response({'detail': 'Verification email sent.'})
 
 
+LOGIN_RATE_LIMIT_PER_MIN = 5
+LOGIN_RATE_LIMIT_PER_HOUR = 20
+
+
+def _check_login_rate_limit(request):
+    """Return error Response if rate limit exceeded, else None."""
+    ip = get_client_ip(request)
+    minute_key = f'login_rl:min:{ip}'
+    hour_key = f'login_rl:hr:{ip}'
+
+    minute_count = cache.get(minute_key, 0)
+    hour_count = cache.get(hour_key, 0)
+
+    if minute_count >= LOGIN_RATE_LIMIT_PER_MIN:
+        return Response(
+            {'detail': 'Too many login attempts. Please wait a minute before trying again.'},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    if hour_count >= LOGIN_RATE_LIMIT_PER_HOUR:
+        return Response(
+            {'detail': 'Too many login attempts. Please try again later.'},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    return None
+
+
+def _increment_login_attempts(request):
+    ip = get_client_ip(request)
+    minute_key = f'login_rl:min:{ip}'
+    hour_key = f'login_rl:hr:{ip}'
+    # Increment minute counter (60s TTL)
+    if cache.get(minute_key) is None:
+        cache.set(minute_key, 1, 60)
+    else:
+        cache.incr(minute_key)
+    # Increment hour counter (3600s TTL)
+    if cache.get(hour_key) is None:
+        cache.set(hour_key, 1, 3600)
+    else:
+        cache.incr(hour_key)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):
+    # Rate limit check
+    rate_error = _check_login_rate_limit(request)
+    if rate_error:
+        return rate_error
+
     # Verify reCAPTCHA token
     recaptcha_token = request.data.get('recaptcha_token', '')
     if not verify_recaptcha(recaptcha_token, action='login'):
@@ -87,6 +152,7 @@ def api_login(request):
         password=serializer.validated_data['password'],
     )
     if user is None:
+        _increment_login_attempts(request)
         log_ip_action(request, 'login_fail')
         return Response(
             {'detail': 'Invalid email or password.'},
