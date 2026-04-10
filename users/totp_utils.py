@@ -1,7 +1,7 @@
 """TOTP helpers for admin 2FA using pyotp."""
 import pyotp
 
-ISSUER = 'WicePlatform'
+ISSUER = 'PriveBoost'
 
 
 def generate_secret() -> str:

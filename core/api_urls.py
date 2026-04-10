@@ -55,6 +55,7 @@ from core.admin_api_views import (
     admin_update_service_admin, admin_delete_service_admin,
     admin_pending_submissions, admin_review_submission,
     admin_my_submissions,
+    admin_api_key_request_code, admin_api_key_verify_code,
 )
 
 
@@ -157,6 +158,8 @@ urlpatterns = [
     path('admin/orders/create/', admin_create_order, name='admin_create_order'),
     path('admin/orders/<int:order_id>/', admin_order_update, name='admin_order_update'),
     path('admin/settings/', admin_platform_settings, name='admin_platform_settings'),
+    path('admin/settings/request-code/', admin_api_key_request_code, name='admin_api_key_request_code'),
+    path('admin/settings/verify-code/', admin_api_key_verify_code, name='admin_api_key_verify_code'),
     path('admin/accounts/', admin_accounts, name='admin_accounts'),
     path('admin/accounts/<int:account_id>/', admin_account_detail, name='admin_account_detail'),
     path('admin/webdev/', admin_webdev, name='admin_webdev'),

@@ -3,12 +3,17 @@ import {
   Settings, Percent, Loader2, Save, TrendingUp, Phone,
   DollarSign, Bitcoin, Plus, Trash2, QrCode, Copy, CheckCircle,
   CreditCard, AlertTriangle, Key, Eye, EyeOff, Database, FileText,
+  Lock, ShieldCheck, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchPlatformSettings, updatePlatformSettings, type CryptoMethod, type ApiKeyInfo } from "@/lib/api";
+import {
+  fetchPlatformSettings, updatePlatformSettings,
+  requestApiKeyCode, verifyApiKeyCode,
+  type CryptoMethod, type ApiKeyInfo, ApiError,
+} from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import QRCode from "qrcode";
@@ -127,6 +132,15 @@ const AdminSettingsPage = () => {
   const [showKey, setShowKey] = useState(false);
   const [savingKey, setSavingKey] = useState(false);
 
+  // API key verification gate
+  const [apiKeysVerified, setApiKeysVerified] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [requires2fa, setRequires2fa] = useState(false);
+  const [emailCode, setEmailCode] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin-settings"],
     queryFn: fetchPlatformSettings,
@@ -139,6 +153,7 @@ const AdminSettingsPage = () => {
       setExchangeRate(data.usd_to_ngn_rate);
       setCryptoRate(data.crypto_usd_rate ?? "1600");
       setCryptoMethods(data.crypto_methods || []);
+      setApiKeysVerified(!!data.api_keys_verified);
       if (data.api_keys) setApiKeyInfo(data.api_keys as typeof apiKeyInfo);
     }
   }, [data]);
@@ -233,6 +248,39 @@ const AdminSettingsPage = () => {
       toast.success("API key updated.");
     } catch { toast.error("Failed to update API key."); }
     setSavingKey(false);
+  };
+
+  const handleRequestCode = async () => {
+    setSendingCode(true);
+    try {
+      const res = await requestApiKeyCode();
+      setCodeSent(true);
+      setRequires2fa(res.requires_2fa);
+      toast.success("Verification code sent to your email.");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to send code.";
+      toast.error(msg);
+    }
+    setSendingCode(false);
+  };
+
+  const handleVerifyCode = async () => {
+    if (!emailCode.trim()) { toast.error("Enter the email code."); return; }
+    if (requires2fa && !totpCode.trim()) { toast.error("Enter your 2FA code."); return; }
+    setVerifying(true);
+    try {
+      await verifyApiKeyCode(emailCode.trim(), totpCode.trim());
+      setApiKeysVerified(true);
+      setCodeSent(false);
+      setEmailCode("");
+      setTotpCode("");
+      queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+      toast.success("Identity verified. API keys unlocked.");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Verification failed.";
+      toast.error(msg);
+    }
+    setVerifying(false);
   };
 
   const KEY_META: Record<ApiKeySlot, { label: string; hint: string; color: string }> = {
@@ -540,104 +588,202 @@ const AdminSettingsPage = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {(Object.keys(KEY_META) as ApiKeySlot[]).map((slot) => {
-                const meta = KEY_META[slot];
-                const info = apiKeyInfo[slot];
-                const isEditing = editingKey === slot;
+            {!apiKeysVerified ? (
+              /* ── Verification Gate ── */
+              <div className="glass-card p-8 text-center space-y-6">
+                <div className="h-16 w-16 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto">
+                  <Lock className="h-8 w-8 text-violet-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Identity Verification Required</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                    API keys are sensitive. Verify your identity to view or modify them.
+                    A 6-digit code will be sent to your email.
+                  </p>
+                </div>
 
-                const sourceBadge = info.source === 'database'
-                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full"><Database className="h-2.5 w-2.5" /> DB override</span>
-                  : info.source === 'env'
-                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-sky-500/10 px-2 py-0.5 rounded-full"><FileText className="h-2.5 w-2.5" /> .env</span>
-                  : <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-500/10 px-2 py-0.5 rounded-full"><AlertTriangle className="h-2.5 w-2.5" /> not set</span>;
-
-                return (
-                  <div key={slot} className="glass-card p-5 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0", meta.color)}>
-                          <Key className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-foreground">{meta.label}</h3>
-                          <p className="text-xs text-muted-foreground">{meta.hint}</p>
-                        </div>
-                      </div>
-                      {sourceBadge}
+                {!codeSent ? (
+                  <Button
+                    onClick={handleRequestCode}
+                    disabled={sendingCode}
+                    className="gap-2"
+                  >
+                    {sendingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                    Send Verification Code
+                  </Button>
+                ) : (
+                  <div className="max-w-sm mx-auto space-y-4">
+                    <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-3">
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 justify-center">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Code sent to your email. It expires in 5 minutes.
+                      </p>
                     </div>
 
-                    {/* Current value */}
-                    <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2 flex items-center gap-2">
-                      <code className="text-xs font-mono flex-1 text-muted-foreground truncate">
-                        {info.masked ?? <span className="italic">not configured</span>}
-                      </code>
+                    <div className="space-y-2">
+                      <Label htmlFor="email-code" className="text-xs font-semibold flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        Email Code
+                      </Label>
+                      <Input
+                        id="email-code"
+                        placeholder="Enter 6-digit code"
+                        value={emailCode}
+                        onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="h-11 text-center font-mono text-lg tracking-[0.3em]"
+                        maxLength={6}
+                        autoFocus
+                      />
                     </div>
 
-                    {/* Edit area */}
-                    {isEditing ? (
+                    {requires2fa && (
                       <div className="space-y-2">
-                        <div className="relative">
-                          <Input
-                            type={showKey ? "text" : "password"}
-                            placeholder={`Paste new ${meta.label}…`}
-                            value={keyInput}
-                            onChange={(e) => setKeyInput(e.target.value)}
-                            className="h-10 font-mono text-xs pr-10"
-                            autoFocus
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowKey((v) => !v)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
+                        <Label htmlFor="totp-code" className="text-xs font-semibold flex items-center gap-1.5">
+                          <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                          2FA Code
+                        </Label>
+                        <Input
+                          id="totp-code"
+                          placeholder="Enter authenticator code"
+                          value={totpCode}
+                          onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="h-11 text-center font-mono text-lg tracking-[0.3em]"
+                          maxLength={6}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 h-10"
+                        onClick={handleVerifyCode}
+                        disabled={verifying || emailCode.length < 6}
+                      >
+                        {verifying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-2" />}
+                        Verify
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-10"
+                        onClick={handleRequestCode}
+                        disabled={sendingCode}
+                      >
+                        {sendingCode ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Resend"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ── Unlocked API Keys ── */
+              <>
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center gap-3">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                    Identity verified. API key access unlocked for 10 minutes.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {(Object.keys(KEY_META) as ApiKeySlot[]).map((slot) => {
+                    const meta = KEY_META[slot];
+                    const info = apiKeyInfo[slot];
+                    const isEditing = editingKey === slot;
+
+                    const sourceBadge = info.source === 'database'
+                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full"><Database className="h-2.5 w-2.5" /> DB override</span>
+                      : info.source === 'env'
+                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-sky-500/10 px-2 py-0.5 rounded-full"><FileText className="h-2.5 w-2.5" /> .env</span>
+                      : <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-500/10 px-2 py-0.5 rounded-full"><AlertTriangle className="h-2.5 w-2.5" /> not set</span>;
+
+                    return (
+                      <div key={slot} className="glass-card p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0", meta.color)}>
+                              <Key className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-foreground">{meta.label}</h3>
+                              <p className="text-xs text-muted-foreground">{meta.hint}</p>
+                            </div>
+                          </div>
+                          {sourceBadge}
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="flex-1 h-9"
-                            disabled={savingKey}
-                            onClick={() => handleSaveApiKey(slot)}
-                          >
-                            {savingKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
-                            Save
-                          </Button>
+
+                        {/* Current value */}
+                        <div className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2 flex items-center gap-2">
+                          <code className="text-xs font-mono flex-1 text-muted-foreground truncate">
+                            {info.masked ?? <span className="italic">not configured</span>}
+                          </code>
+                        </div>
+
+                        {/* Edit area */}
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <Input
+                                type={showKey ? "text" : "password"}
+                                placeholder={`Paste new ${meta.label}…`}
+                                value={keyInput}
+                                onChange={(e) => setKeyInput(e.target.value)}
+                                className="h-10 font-mono text-xs pr-10"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowKey((v) => !v)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="flex-1 h-9"
+                                disabled={savingKey}
+                                onClick={() => handleSaveApiKey(slot)}
+                              >
+                                {savingKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-9"
+                                onClick={() => { setEditingKey(null); setKeyInput(""); setShowKey(false); }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-9"
-                            onClick={() => { setEditingKey(null); setKeyInput(""); setShowKey(false); }}
+                            className="w-full h-9 gap-2"
+                            onClick={() => { setEditingKey(slot); setKeyInput(""); setShowKey(false); }}
                           >
-                            Cancel
+                            <Key className="h-3.5 w-3.5" />
+                            {info.source === 'database' ? 'Update Key' : 'Set Key'}
                           </Button>
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-9 gap-2"
-                        onClick={() => { setEditingKey(slot); setKeyInput(""); setShowKey(false); }}
-                      >
-                        <Key className="h-3.5 w-3.5" />
-                        {info.source === 'database' ? 'Update Key' : 'Set Key'}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
 
-            <div className="rounded-xl border border-border/30 bg-muted/10 p-4 flex items-start gap-3">
-              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">
-                DB keys override <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code> values and take effect immediately without a server restart.
-                If a DB key is set, it is used even if the <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code> key differs.
-                Remove a key from the DB to fall back to <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code>.
-              </p>
-            </div>
+                <div className="rounded-xl border border-border/30 bg-muted/10 p-4 flex items-start gap-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    DB keys override <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code> values and take effect immediately without a server restart.
+                    If a DB key is set, it is used even if the <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code> key differs.
+                    Remove a key from the DB to fall back to <code className="bg-muted px-1 py-0.5 rounded text-[11px]">.env</code>.
+                  </p>
+                </div>
+              </>
+            )}
           </section>
         </>
       )}

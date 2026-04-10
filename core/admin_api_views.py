@@ -807,8 +807,104 @@ def admin_order_update(request, order_id):
 
 
 # ---------------------------------------------------------------------------
-# Platform Settings
+# Platform Settings — API key access requires email verification
 # ---------------------------------------------------------------------------
+
+import secrets
+from django.core.cache import cache as django_cache
+
+API_KEY_CODE_TTL = 300          # 5 minutes
+API_KEY_SESSION_TTL = 600       # 10 minutes window after verification
+API_KEY_CODE_PREFIX = 'apikey_code_'
+API_KEY_VERIFIED_SESSION_KEY = '_api_key_verified_at'
+
+
+def _get_client_ip(request):
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    return xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', '')
+
+
+def _is_api_key_verified(request):
+    """Check if the admin has recently verified identity for API key access."""
+    verified_at = request.session.get(API_KEY_VERIFIED_SESSION_KEY)
+    if not verified_at:
+        return False
+    from datetime import datetime
+    try:
+        vt = datetime.fromisoformat(verified_at)
+        return (timezone.now() - vt).total_seconds() < API_KEY_SESSION_TTL
+    except (ValueError, TypeError):
+        return False
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_api_key_request_code(request):
+    """Send a 6-digit verification code to the admin's email."""
+    user = request.user
+    code = f'{secrets.randbelow(900000) + 100000}'  # 6-digit code
+    cache_key = f'{API_KEY_CODE_PREFIX}{user.id}'
+    django_cache.set(cache_key, code, API_KEY_CODE_TTL)
+
+    # Send email
+    from django.template.loader import render_to_string
+    html_body = render_to_string('emails/admin_api_key_code.html', {
+        'admin_name': user.first_name or user.email,
+        'code': code,
+        'ip_address': _get_client_ip(request),
+        'timestamp': timezone.now().strftime('%B %d, %Y at %I:%M %p'),
+    })
+    email = EmailMessage(
+        subject=f'[PriveBoost] Security Code — API Key Access',
+        body=html_body,
+        from_email=django_settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.content_subtype = 'html'
+    try:
+        email.send(fail_silently=False)
+    except Exception as e:
+        logger.error(f'Failed to send API key verification code to {user.email}: {e}')
+        return Response({'detail': 'Failed to send verification code. Try again.'}, status=503)
+
+    return Response({
+        'detail': 'Verification code sent to your email.',
+        'requires_2fa': bool(user.totp_enabled),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
+def admin_api_key_verify_code(request):
+    """Verify the email code (and TOTP if 2FA is enabled) to unlock API key access."""
+    user = request.user
+    email_code = str(request.data.get('email_code', '')).strip()
+    totp_code = str(request.data.get('totp_code', '')).strip()
+
+    if not email_code:
+        return Response({'detail': 'Email verification code is required.'}, status=400)
+
+    # Check email code
+    cache_key = f'{API_KEY_CODE_PREFIX}{user.id}'
+    stored_code = django_cache.get(cache_key)
+    if not stored_code or stored_code != email_code:
+        return Response({'detail': 'Invalid or expired verification code.'}, status=400)
+
+    # Check TOTP if 2FA is enabled
+    if user.totp_enabled:
+        if not totp_code:
+            return Response({'detail': '2FA code is required.'}, status=400)
+        from users.totp_utils import verify_code
+        if not verify_code(user.totp_secret, totp_code):
+            return Response({'detail': 'Invalid 2FA code.'}, status=400)
+
+    # All good — mark session as verified and clear the one-time code
+    django_cache.delete(cache_key)
+    request.session[API_KEY_VERIFIED_SESSION_KEY] = timezone.now().isoformat()
+    request.session.save()
+
+    return Response({'detail': 'Verified. API key access unlocked for 10 minutes.'})
+
 
 def _mask_key(value):
     """Return a safely masked version of an API key for display."""
@@ -834,21 +930,28 @@ def _key_info(db_val, settings_attr):
 @permission_classes([IsAuthenticated, IsSuperAdmin])
 def admin_platform_settings(request):
     settings_obj = PlatformSettings.load()
+    api_key_verified = _is_api_key_verified(request)
 
     if request.method == 'GET':
+        # API keys are only visible after email/2FA verification
+        if api_key_verified:
+            api_keys = {
+                'korapay_secret':     _key_info(settings_obj.korapay_secret_key, 'KORAPAY_SECRET_KEY'),
+                'korapay_public':     _key_info(settings_obj.korapay_public_key, 'KORAPAY_PUBLIC_KEY'),
+                'korapay_encryption': _key_info(settings_obj.korapay_encryption_key, 'KORAPAY_ENCRYPTION_KEY'),
+                'rss_api_key':        _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
+                'smspool_api_key':    _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
+            }
+        else:
+            api_keys = None  # frontend shows locked state
         return Response({
             'boosting_markup_percent': str(settings_obj.boosting_markup_percent),
             'numbers_markup_percent': str(settings_obj.numbers_markup_percent),
             'usd_to_ngn_rate': str(settings_obj.usd_to_ngn_rate),
             'crypto_usd_rate': str(settings_obj.crypto_usd_rate),
             'crypto_methods': settings_obj.crypto_methods or [],
-            'api_keys': {
-                'korapay_secret':     _key_info(settings_obj.korapay_secret_key, 'KORAPAY_SECRET_KEY'),
-                'korapay_public':     _key_info(settings_obj.korapay_public_key, 'KORAPAY_PUBLIC_KEY'),
-                'korapay_encryption': _key_info(settings_obj.korapay_encryption_key, 'KORAPAY_ENCRYPTION_KEY'),
-                'rss_api_key':        _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
-                'smspool_api_key':    _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
-            },
+            'api_keys': api_keys,
+            'api_keys_verified': api_key_verified,
         })
 
     # PATCH — update settings
@@ -908,7 +1011,13 @@ def admin_platform_settings(request):
             })
         settings_obj.crypto_methods = cleaned
 
-    # API key overrides — only update if a non-empty value is supplied
+    # API key overrides — require verification
+    api_keys_data = request.data.get('api_keys', {})
+    if api_keys_data and not api_key_verified:
+        return Response(
+            {'detail': 'Identity verification required to modify API keys.'},
+            status=403,
+        )
     API_KEY_FIELDS = {
         'korapay_secret':     ('korapay_secret_key',     'korapay_secret_key'),
         'korapay_public':     ('korapay_public_key',     'korapay_public_key'),
@@ -916,7 +1025,6 @@ def admin_platform_settings(request):
         'rss_api_key':        ('rss_api_key',            'rss_api_key'),
         'smspool_api_key':    ('smspool_api_key',        'smspool_api_key'),
     }
-    api_keys_data = request.data.get('api_keys', {})
     cleared_key_caches = []
     for payload_key, (model_attr, cache_attr) in API_KEY_FIELDS.items():
         new_val = api_keys_data.get(payload_key)
@@ -948,6 +1056,7 @@ def admin_platform_settings(request):
             'rss_api_key':        _key_info(settings_obj.rss_api_key, 'REAL_SIMPLE_SOCIAL_API_KEY'),
             'smspool_api_key':    _key_info(settings_obj.smspool_api_key, 'SMS_POOL_API_KEY'),
         },
+        'api_keys_verified': True,
     })
 
 

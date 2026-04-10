@@ -1,0 +1,36 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Security Code — PriveBoost Admin{% endblock %}
+{% block preview_text %}Your security verification code for API key access.{% endblock %}
+{% block hero_icon %}&#128274;{% endblock %}
+{% block hero_title %}Security Verification{% endblock %}
+{% block hero_subtitle %}A sensitive action was requested on your admin account{% endblock %}
+
+{% block body_content %}
+<p style="margin: 0 0 16px; color: #3f3f46; font-size: 15px; line-height: 1.6;">
+  Hi {{ admin_name }},
+</p>
+<p style="margin: 0 0 24px; color: #3f3f46; font-size: 15px; line-height: 1.6;">
+  A request was made to access or modify API keys on the PriveBoost admin panel. Use the code below to verify your identity.
+</p>
+
+<!-- Code box -->
+<div style="text-align: center; margin: 0 0 24px;">
+  <div style="display: inline-block; background: #f4f4f5; border: 2px solid #e4e4e7; border-radius: 12px; padding: 20px 40px;">
+    <span style="font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #18181b;">{{ code }}</span>
+  </div>
+</div>
+
+<div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin: 0 0 24px;">
+  <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.5;">
+    <strong>This code expires in 5 minutes.</strong> If you did not request this, change your password immediately and contact support.
+  </p>
+</div>
+
+<div style="background: #f4f4f5; border-radius: 8px; padding: 12px 16px; margin: 0 0 24px;">
+  <p style="margin: 0; color: #52525b; font-size: 13px; line-height: 1.5;">
+    <strong>IP Address:</strong> {{ ip_address }}<br>
+    <strong>Time:</strong> {{ timestamp }}
+  </p>
+</div>
+{% endblock %}

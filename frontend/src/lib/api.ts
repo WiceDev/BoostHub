@@ -726,7 +726,8 @@ export interface PlatformSettings {
     korapay_encryption: ApiKeyInfo;
     rss_api_key: ApiKeyInfo;
     smspool_api_key: ApiKeyInfo;
-  };
+  } | null;
+  api_keys_verified?: boolean;
 }
 
 export function fetchPlatformSettings() {
@@ -737,6 +738,19 @@ export function updatePlatformSettings(data: Record<string, unknown>) {
   return request<PlatformSettings & { detail: string }>('/admin/settings/', {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+export function requestApiKeyCode() {
+  return request<{ detail: string; requires_2fa: boolean }>('/admin/settings/request-code/', {
+    method: 'POST',
+  });
+}
+
+export function verifyApiKeyCode(emailCode: string, totpCode?: string) {
+  return request<{ detail: string }>('/admin/settings/verify-code/', {
+    method: 'POST',
+    body: JSON.stringify({ email_code: emailCode, totp_code: totpCode || '' }),
   });
 }
 
