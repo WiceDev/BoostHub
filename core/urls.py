@@ -17,7 +17,15 @@ def serve_spa(request):
         return HttpResponse(f'<pre>{traceback.format_exc()}</pre>', status=500)
 
 
+def serve_robots(request):
+    robots_path = settings.BASE_DIR / 'frontend' / 'dist' / 'robots.txt'
+    if robots_path.exists():
+        return FileResponse(open(robots_path, 'rb'), content_type='text/plain')
+    return HttpResponse("User-agent: *\nAllow: /\n", content_type='text/plain')
+
+
 urlpatterns = [
+    path('robots.txt', serve_robots),
     path('admin/', admin.site.urls),
     path('api/', include('core.api_urls')),
     # Serve social media icons
