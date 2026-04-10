@@ -77,6 +77,7 @@ else:
             'PASSWORD': config('DATABASE_PASSWORD'),
             'HOST': config('DATABASE_HOST', default='localhost'),
             'PORT': config('DATABASE_PORT', default='5432'),
+            'CONN_MAX_AGE': 600,  # reuse DB connections for 10 min (avoids reconnect overhead)
         }
     }
 LANGUAGE_CODE = 'en-us'
