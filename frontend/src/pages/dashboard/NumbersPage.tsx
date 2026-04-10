@@ -29,6 +29,9 @@ interface ActiveOrderData {
   countryId: string;
   serviceId: string;
   purchasedAt: number; // timestamp ms
+  dialCode?: string;
+  countryName?: string;
+  serviceName?: string;
 }
 
 function saveActiveOrder(data: ActiveOrderData) {
@@ -182,6 +185,10 @@ const NumbersPage = () => {
   const [smsCode, setSmsCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(SMS_EXPIRY_SECONDS);
   const [purchasedAt, setPurchasedAt] = useState<number | null>(null);
+  // Display-only state restored from sessionStorage (fallback when queries haven't loaded)
+  const [restoredDialCode, setRestoredDialCode] = useState("");
+  const [restoredCountryName, setRestoredCountryName] = useState("");
+  const [restoredServiceName, setRestoredServiceName] = useState("");
 
   const { data: numberOrders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ["orders", "phone_number"],
@@ -241,6 +248,9 @@ const NumbersPage = () => {
     setCountry(saved.countryId);
     setService(saved.serviceId);
     setPurchasedAt(saved.purchasedAt);
+    setRestoredDialCode(saved.dialCode || "");
+    setRestoredCountryName(saved.countryName || "");
+    setRestoredServiceName(saved.serviceName || "");
     setCountdown(remaining);
     setPageState("waiting");
 
@@ -265,6 +275,15 @@ const NumbersPage = () => {
     const timer = setInterval(() => setCancelCooldown((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(timer);
   }, [cancelCooldown]);
+
+  // Tick every second when there are processing orders (drives table cooldown countdown)
+  const [, setTick] = useState(0);
+  const hasProcessingOrders = numberOrders.some((o) => o.status === "processing" || o.status === "pending");
+  useEffect(() => {
+    if (!hasProcessingOrders || pageState === "waiting") return; // waiting state already re-renders via countdown
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [hasProcessingOrders, pageState]);
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -291,6 +310,10 @@ const NumbersPage = () => {
 
   const selectedCountry = countries.find((c) => c.id === country);
   const selectedService = services.find((s) => s.id === service);
+  // Display values: prefer live data, fall back to restored sessionStorage values
+  const displayDialCode = selectedCountry?.dial_code || restoredDialCode;
+  const displayCountryName = selectedCountry?.name || restoredCountryName;
+  const displayServiceName = selectedService?.name || restoredServiceName;
   const balance = wallet ? parseFloat(wallet.balance) : 0;
   const price = priceData ? parseFloat(priceData.price_ngn) : 0;
   const canAfford = balance >= price;
@@ -312,6 +335,9 @@ const NumbersPage = () => {
     const orderPhone = extData?.phone_number || "";
     const countryId = extData?.smspool_country || "";
     const serviceId = extData?.smspool_service || "";
+    const dialCode = extData?.dial_code || "";
+    const countryName = extData?.country_name || "";
+    const serviceName = extData?.service_name || "";
 
     const createdMs = new Date(order.created_at).getTime();
     const elapsed = Math.floor((Date.now() - createdMs) / 1000);
@@ -327,6 +353,9 @@ const NumbersPage = () => {
     setCountry(countryId);
     setService(serviceId);
     setPurchasedAt(createdMs);
+    setRestoredDialCode(dialCode);
+    setRestoredCountryName(countryName);
+    setRestoredServiceName(serviceName);
     setCountdown(remaining);
     setSmsCode(null);
     setPageState("waiting");
@@ -340,6 +369,9 @@ const NumbersPage = () => {
       countryId,
       serviceId,
       purchasedAt: createdMs,
+      dialCode,
+      countryName,
+      serviceName,
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -375,6 +407,9 @@ const NumbersPage = () => {
         countryId: country,
         serviceId: service,
         purchasedAt: now,
+        dialCode: selectedCountry?.dial_code || "",
+        countryName: selectedCountry?.name || "",
+        serviceName: selectedService?.name || "",
       });
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to purchase number.";
@@ -434,14 +469,14 @@ const NumbersPage = () => {
 
   const handleCopyNumber = useCallback(() => {
     if (phoneNumber) {
-      const dialCode = selectedCountry?.dial_code || "";
-      const full = dialCode
-        ? `+${dialCode}${phoneNumber.replace(/^\+/, "")}`
+      const dial = displayDialCode || "";
+      const full = dial
+        ? `+${dial}${phoneNumber.replace(/^\+/, "")}`
         : `+${phoneNumber.replace(/^\+/, "")}`;
       navigator.clipboard.writeText(full);
       toast.success("Number copied to clipboard!");
     }
-  }, [phoneNumber, selectedCountry]);
+  }, [phoneNumber, displayDialCode]);
 
   const resetToBrowse = () => {
     clearActiveOrder();
@@ -501,13 +536,13 @@ const NumbersPage = () => {
               <p className="text-xs text-muted-foreground uppercase font-bold mb-1">Your Number</p>
               <div className="flex items-center justify-center gap-2">
                 <div className="text-center">
-                  {selectedCountry?.dial_code && (
+                  {displayDialCode && (
                     <p className="text-sm font-bold text-muted-foreground font-mono tracking-wider">
-                      +{selectedCountry.dial_code}
+                      +{displayDialCode}
                     </p>
                   )}
                   <p className="text-2xl font-extrabold text-foreground tracking-wider font-mono">
-                    {phoneNumber.replace(/^\+/, "").replace(selectedCountry?.dial_code || "", "").replace(/^0+/, "") || phoneNumber.replace(/^\+/, "")}
+                    {phoneNumber.replace(/^\+/, "").replace(displayDialCode || "", "").replace(/^0+/, "") || phoneNumber.replace(/^\+/, "")}
                   </p>
                 </div>
                 <button onClick={handleCopyNumber} className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
@@ -515,7 +550,7 @@ const NumbersPage = () => {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1 text-center">
-                {selectedService?.name} &middot; {selectedCountry?.name}
+                {displayServiceName} &middot; {displayCountryName}
               </p>
             </div>
 
@@ -827,6 +862,8 @@ const NumbersPage = () => {
                   const canReorder = order.status === "completed" && isWithin72Hours(order.created_at);
                   const isProcessing = order.status === "processing" || order.status === "pending";
                   const isActiveWaiting = activeOrderId === order.id && pageState === "waiting";
+                  const orderAge = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000);
+                  const tableCancelCooldown = isProcessing ? Math.max(0, CANCEL_COOLDOWN_SECONDS - orderAge) : 0;
                   return (
                     <tr
                       key={order.id}
@@ -882,11 +919,11 @@ const NumbersPage = () => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleTableCancel(order.id)}
-                              disabled={cancelling}
+                              disabled={cancelling || tableCancelCooldown > 0}
                               className="h-8 text-xs gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5"
                             >
                               <X className="h-3.5 w-3.5" />
-                              Cancel
+                              {tableCancelCooldown > 0 ? `${tableCancelCooldown}s` : "Cancel"}
                             </Button>
                           </div>
                         ) : canReorder ? (
