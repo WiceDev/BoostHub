@@ -12,7 +12,7 @@ from orders.services import create_order
 @permission_classes([IsAuthenticated])
 def api_gifts(request):
     """List active gifts for users."""
-    gifts = Gift.objects.filter(is_active=True).order_by('category', 'name')
+    gifts = Gift.objects.filter(is_active=True).prefetch_related('images').order_by('category', 'name')
     data = [{
         'id': g.id,
         'name': g.name,
@@ -23,6 +23,7 @@ def api_gifts(request):
         'emoji': g.emoji,
         'color': g.color,
         'image_url': g.image_url,
+        'images': [{'id': img.id, 'url': img.image.url, 'position': img.position} for img in g.images.all()],
         'delivery_days': g.delivery_days,
         'notes': g.notes,
         'rating': str(g.rating),
@@ -35,7 +36,7 @@ def api_gifts(request):
 def api_gift_detail(request, gift_id):
     """Get a single active gift by ID."""
     try:
-        gift = Gift.objects.get(pk=gift_id, is_active=True)
+        gift = Gift.objects.prefetch_related('images').get(pk=gift_id, is_active=True)
     except Gift.DoesNotExist:
         return Response({'detail': 'Gift not found.'}, status=404)
     return Response({
@@ -48,6 +49,7 @@ def api_gift_detail(request, gift_id):
         'emoji': gift.emoji,
         'color': gift.color,
         'image_url': gift.image_url,
+        'images': [{'id': img.id, 'url': img.image.url, 'position': img.position} for img in gift.images.all()],
         'delivery_days': gift.delivery_days,
         'notes': gift.notes,
         'rating': str(gift.rating),
@@ -58,7 +60,7 @@ def api_gift_detail(request, gift_id):
 @permission_classes([IsAuthenticated])
 def api_webdev_portfolio(request):
     """List active web development portfolio items."""
-    items = WebDevPortfolio.objects.filter(is_active=True).order_by('-created_at')
+    items = WebDevPortfolio.objects.filter(is_active=True).prefetch_related('media_files').order_by('-created_at')
     data = [{
         'id': item.id,
         'title': item.title,
@@ -66,6 +68,7 @@ def api_webdev_portfolio(request):
         'video_url': item.video_url,
         'website_url': item.website_url,
         'image_url': item.image_url,
+        'media': [{'id': m.id, 'url': m.file.url, 'media_type': m.media_type, 'position': m.position} for m in item.media_files.all()],
         'price': str(item.price),
         'category': item.category,
     } for item in items]
@@ -76,8 +79,12 @@ def api_webdev_portfolio(request):
 @permission_classes([AllowAny])
 def api_public_settings(request):
     """Public platform settings (no auth required)."""
+    from core.models import PlatformSettings
+    ps = PlatformSettings.load()
     return Response({
         'whatsapp': getattr(django_settings, 'PLATFORM_WHATSAPP', ''),
+        'gifts_enabled': ps.gifts_enabled,
+        'webdev_enabled': ps.webdev_enabled,
     })
 
 

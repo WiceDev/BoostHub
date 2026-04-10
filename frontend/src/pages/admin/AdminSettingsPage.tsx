@@ -316,6 +316,53 @@ const AdminSettingsPage = () => {
         </div>
       ) : (
         <>
+          {/* ── FEATURE TOGGLES ─────────────────────────────────────── */}
+          <section className="space-y-4">
+            <div className="flex items-center gap-3 px-1">
+              <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                <Settings className="h-4 w-4 text-violet-500" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-foreground">Feature Toggles</h2>
+                <p className="text-xs text-muted-foreground">Enable or disable pages for users — disabled pages show "Coming Soon"</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {([
+                { key: 'gifts_enabled', label: 'Gifts Page', desc: 'Send Gift Abroad service' },
+                { key: 'webdev_enabled', label: 'Web Development Page', desc: 'Web development portfolio' },
+              ] as const).map(({ key, label, desc }) => (
+                <div key={key} className="glass-card p-5 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">{label}</h3>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newVal = !(data as any)?.[key];
+                      try {
+                        await updatePlatformSettings({ [key]: newVal });
+                        queryClient.invalidateQueries({ queryKey: ["admin-settings"] });
+                        queryClient.invalidateQueries({ queryKey: ["public-settings"] });
+                        toast.success(`${label} ${newVal ? 'enabled' : 'disabled'}.`);
+                      } catch { toast.error("Failed to update toggle."); }
+                    }}
+                    className={cn(
+                      "relative inline-flex h-7 w-12 items-center rounded-full transition-colors flex-shrink-0",
+                      (data as any)?.[key] ? "bg-primary" : "bg-muted-foreground/20"
+                    )}
+                  >
+                    <span className={cn(
+                      "inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                      (data as any)?.[key] ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* ── PROFIT SETTINGS ─────────────────────────────────────── */}
           <section className="space-y-4">
             <div className="flex items-center gap-3 px-1">

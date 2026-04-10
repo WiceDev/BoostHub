@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Home, ChevronRight, Gift, AlertTriangle, Loader2, Wallet,
-  CheckCircle2,
+  CheckCircle2, ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { fetchWallet, fetchGift, placeGiftOrder, ApiError } from "@/lib/api";
+import { fetchWallet, fetchGift, fetchPublicSettings, placeGiftOrder, ApiError, type GiftImage } from "@/lib/api";
 import { addToGiftCart, getGiftCartItem, removeFromGiftCart, addGiftOrder, type GiftOrder } from "@/lib/giftCart";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,11 +50,49 @@ interface FormErrors {
   senderName?: string;
 }
 
+const CheckoutCarousel = ({ images, alt }: { images: GiftImage[]; alt: string }) => {
+  const [idx, setIdx] = useState(0);
+  if (images.length === 0) return null;
+  return (
+    <div className="relative w-full h-full">
+      <img src={images[idx].url} alt={alt} className="w-full h-full object-cover" />
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={() => setIdx(i => (i - 1 + images.length) % images.length)}
+            className="absolute left-1 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setIdx(i => (i + 1) % images.length)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+          <div className="absolute bottom-1 inset-x-0 flex justify-center gap-1">
+            {images.map((_, i) => (
+              <span key={i} className={`h-1 rounded-full transition-all ${i === idx ? "w-3 bg-white" : "w-1 bg-white/50"}`} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const GiftCheckoutPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { formatAmount } = useCurrency();
   const queryClient = useQueryClient();
+
+  // Check feature toggle
+  const { data: publicSettings } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: fetchPublicSettings,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch gift from API
   const { data: gift, isLoading: giftLoading } = useQuery({
@@ -108,6 +146,12 @@ const GiftCheckoutPage = () => {
   }, [gift]);
 
   const selectedPhoneCountry = countries.find((c) => c.code === phoneCountry);
+
+  // Redirect if gifts are disabled
+  if (publicSettings && !publicSettings.gifts_enabled) {
+    navigate("/dashboard/gifts", { replace: true });
+    return null;
+  }
 
   if (giftLoading) {
     return (
@@ -335,7 +379,9 @@ const GiftCheckoutPage = () => {
       <div className="glass-card overflow-hidden">
         <div className="flex items-center gap-4 p-5">
           <div className="h-20 w-20 rounded-xl bg-primary/80 flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {gift.image_url ? (
+            {gift.images?.length > 0 ? (
+              <CheckoutCarousel images={gift.images} alt={gift.name} />
+            ) : gift.image_url ? (
               <img src={gift.image_url} alt={gift.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-3xl">{gift.emoji || "🎁"}</span>

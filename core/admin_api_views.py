@@ -8,6 +8,7 @@ Permission model:
 """
 import logging
 from datetime import timedelta
+from django.db import models
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncDay
 from django.utils import timezone
@@ -29,7 +30,7 @@ from core.email_utils import (
     send_gift_status_email, send_crypto_deposit_status_email,
     notify_admin_new_submission, send_submission_reviewed_email,
 )
-from services.models import Gift, BoostingService, SocialMediaAccount, WebDevPortfolio
+from services.models import Gift, GiftImage, BoostingService, SocialMediaAccount, WebDevPortfolio, WebDevMedia
 from services.pending import PendingSubmission
 from core.models import PlatformSettings, BannedIP, IPLog
 
@@ -401,7 +402,7 @@ def admin_user_delete(request, user_id):
 @require_admin_permission('manage_gifts')
 def admin_gifts(request):
     if request.method == 'GET':
-        gifts = Gift.objects.all()
+        gifts = Gift.objects.prefetch_related('images').all()
         data = [{
             'id': g.id,
             'name': g.name,
@@ -412,6 +413,7 @@ def admin_gifts(request):
             'emoji': g.emoji,
             'color': g.color,
             'image_url': g.image_url,
+            'images': [{'id': img.id, 'url': img.image.url, 'position': img.position} for img in g.images.all()],
             'delivery_days': g.delivery_days,
             'notes': g.notes,
             'rating': str(g.rating),
@@ -483,6 +485,7 @@ def admin_gift_detail(request, gift_id):
             'emoji': gift.emoji,
             'color': gift.color,
             'image_url': gift.image_url,
+            'images': [{'id': img.id, 'url': img.image.url, 'position': img.position} for img in gift.images.all()],
             'delivery_days': gift.delivery_days,
             'notes': gift.notes,
             'rating': str(gift.rating),
@@ -521,6 +524,139 @@ def admin_gift_detail(request, gift_id):
     if request.method == 'DELETE':
         gift.delete()
         return Response({'detail': 'Gift deleted.'}, status=204)
+
+
+# ---------------------------------------------------------------------------
+# Gift Image uploads
+# ---------------------------------------------------------------------------
+
+MAX_GIFT_IMAGES = 8
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_gifts')
+def admin_gift_images(request, gift_id):
+    """Upload one or more images for a gift (multipart/form-data)."""
+    try:
+        gift = Gift.objects.get(pk=gift_id)
+    except Gift.DoesNotExist:
+        return Response({'detail': 'Gift not found.'}, status=404)
+
+    files = request.FILES.getlist('images')
+    if not files:
+        return Response({'detail': 'No images provided.'}, status=400)
+
+    current_count = gift.images.count()
+    if current_count + len(files) > MAX_GIFT_IMAGES:
+        return Response({'detail': f'Maximum {MAX_GIFT_IMAGES} images per gift.'}, status=400)
+
+    created = []
+    max_pos = gift.images.aggregate(models.Max('position'))['position__max'] or 0
+    for i, f in enumerate(files):
+        if f.size > MAX_IMAGE_SIZE:
+            return Response({'detail': f'{f.name} exceeds 5MB limit.'}, status=400)
+        if not f.content_type.startswith('image/'):
+            return Response({'detail': f'{f.name} is not a valid image.'}, status=400)
+        img = GiftImage.objects.create(gift=gift, image=f, position=max_pos + i + 1)
+        created.append({'id': img.id, 'url': img.image.url, 'position': img.position})
+
+    return Response({'detail': f'{len(created)} image(s) uploaded.', 'images': created}, status=201)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_gifts')
+def admin_gift_image_delete(request, gift_id, image_id):
+    """Delete a single gift image."""
+    try:
+        img = GiftImage.objects.get(pk=image_id, gift_id=gift_id)
+    except GiftImage.DoesNotExist:
+        return Response({'detail': 'Image not found.'}, status=404)
+    img.image.delete(save=False)
+    img.delete()
+    return Response({'detail': 'Image deleted.'}, status=204)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_gifts')
+def admin_gift_images_reorder(request, gift_id):
+    """Reorder gift images. Expects {"order": [image_id, image_id, ...]}."""
+    try:
+        gift = Gift.objects.get(pk=gift_id)
+    except Gift.DoesNotExist:
+        return Response({'detail': 'Gift not found.'}, status=404)
+
+    order = request.data.get('order', [])
+    if not isinstance(order, list):
+        return Response({'detail': 'order must be a list of image IDs.'}, status=400)
+
+    for pos, img_id in enumerate(order):
+        GiftImage.objects.filter(pk=img_id, gift=gift).update(position=pos)
+
+    return Response({'detail': 'Images reordered.'})
+
+
+# ---------------------------------------------------------------------------
+# WebDev Media uploads
+# ---------------------------------------------------------------------------
+
+MAX_WEBDEV_MEDIA = 5
+MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_webdev')
+def admin_webdev_media_upload(request, item_id):
+    """Upload videos or images for a webdev portfolio item."""
+    try:
+        item = WebDevPortfolio.objects.get(pk=item_id)
+    except WebDevPortfolio.DoesNotExist:
+        return Response({'detail': 'Portfolio item not found.'}, status=404)
+
+    files = request.FILES.getlist('files')
+    if not files:
+        return Response({'detail': 'No files provided.'}, status=400)
+
+    current_count = item.media_files.count()
+    if current_count + len(files) > MAX_WEBDEV_MEDIA:
+        return Response({'detail': f'Maximum {MAX_WEBDEV_MEDIA} media files per item.'}, status=400)
+
+    created = []
+    max_pos = item.media_files.aggregate(models.Max('position'))['position__max'] or 0
+    for i, f in enumerate(files):
+        if f.content_type.startswith('video/'):
+            if f.size > MAX_VIDEO_SIZE:
+                return Response({'detail': f'{f.name} exceeds 50MB limit.'}, status=400)
+            media_type = 'video'
+        elif f.content_type.startswith('image/'):
+            if f.size > MAX_IMAGE_SIZE:
+                return Response({'detail': f'{f.name} exceeds 5MB limit.'}, status=400)
+            media_type = 'image'
+        else:
+            return Response({'detail': f'{f.name} is not a valid image or video.'}, status=400)
+
+        m = WebDevMedia.objects.create(portfolio=item, file=f, media_type=media_type, position=max_pos + i + 1)
+        created.append({'id': m.id, 'url': m.file.url, 'media_type': m.media_type, 'position': m.position})
+
+    return Response({'detail': f'{len(created)} file(s) uploaded.', 'media': created}, status=201)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+@require_admin_permission('manage_webdev')
+def admin_webdev_media_delete(request, item_id, media_id):
+    """Delete a single webdev media file."""
+    try:
+        m = WebDevMedia.objects.get(pk=media_id, portfolio_id=item_id)
+    except WebDevMedia.DoesNotExist:
+        return Response({'detail': 'Media not found.'}, status=404)
+    m.file.delete(save=False)
+    m.delete()
+    return Response({'detail': 'Media deleted.'}, status=204)
 
 
 # ---------------------------------------------------------------------------
@@ -950,6 +1086,8 @@ def admin_platform_settings(request):
             'usd_to_ngn_rate': str(settings_obj.usd_to_ngn_rate),
             'crypto_usd_rate': str(settings_obj.crypto_usd_rate),
             'crypto_methods': settings_obj.crypto_methods or [],
+            'gifts_enabled': settings_obj.gifts_enabled,
+            'webdev_enabled': settings_obj.webdev_enabled,
             'api_keys': api_keys,
             'api_keys_verified': api_key_verified,
         })
@@ -987,6 +1125,12 @@ def admin_platform_settings(request):
             settings_obj.crypto_usd_rate = crypto_rate
         except (TypeError, ValueError):
             return Response({'detail': 'Invalid crypto exchange rate value.'}, status=400)
+
+    # Feature toggles
+    for toggle in ('gifts_enabled', 'webdev_enabled'):
+        val = request.data.get(toggle)
+        if val is not None:
+            setattr(settings_obj, toggle, bool(val))
 
     # Crypto methods — full list replacement
     if 'crypto_methods' in request.data:
@@ -1049,6 +1193,8 @@ def admin_platform_settings(request):
         'usd_to_ngn_rate': str(settings_obj.usd_to_ngn_rate),
         'crypto_usd_rate': str(settings_obj.crypto_usd_rate),
         'crypto_methods': settings_obj.crypto_methods or [],
+        'gifts_enabled': settings_obj.gifts_enabled,
+        'webdev_enabled': settings_obj.webdev_enabled,
         'api_keys': {
             'korapay_secret':     _key_info(settings_obj.korapay_secret_key, 'KORAPAY_SECRET_KEY'),
             'korapay_public':     _key_info(settings_obj.korapay_public_key, 'KORAPAY_PUBLIC_KEY'),
@@ -1197,7 +1343,7 @@ def admin_account_detail(request, account_id):
 @require_admin_permission('manage_webdev')
 def admin_webdev(request):
     if request.method == 'GET':
-        items = WebDevPortfolio.objects.all()
+        items = WebDevPortfolio.objects.prefetch_related('media_files').all()
         data = [{
             'id': w.id,
             'title': w.title,
@@ -1205,6 +1351,7 @@ def admin_webdev(request):
             'video_url': w.video_url,
             'website_url': w.website_url,
             'image_url': w.image_url,
+            'media': [{'id': m.id, 'url': m.file.url, 'media_type': m.media_type, 'position': m.position} for m in w.media_files.all()],
             'price': str(w.price),
             'category': w.category,
             'is_active': w.is_active,
@@ -1263,6 +1410,7 @@ def admin_webdev_detail(request, item_id):
             'video_url': item.video_url,
             'website_url': item.website_url,
             'image_url': item.image_url,
+            'media': [{'id': m.id, 'url': m.file.url, 'media_type': m.media_type, 'position': m.position} for m in item.media_files.all()],
             'price': str(item.price),
             'category': item.category,
             'is_active': item.is_active,

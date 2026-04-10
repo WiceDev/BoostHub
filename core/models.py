@@ -31,6 +31,10 @@ class PlatformSettings(models.Model):
         help_text="USD to NGN rate applied specifically to crypto deposits"
     )
 
+    # Feature toggles — hide pages from users until ready
+    gifts_enabled = models.BooleanField(default=False, help_text="Show Gifts page to users (off = Coming Soon)")
+    webdev_enabled = models.BooleanField(default=False, help_text="Show Web Development page to users (off = Coming Soon)")
+
     # API key overrides — if set, these take precedence over .env values
     korapay_secret_key = models.CharField(max_length=255, blank=True, default='',
         help_text="Overrides KORAPAY_SECRET_KEY in .env")

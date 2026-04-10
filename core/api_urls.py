@@ -56,6 +56,8 @@ from core.admin_api_views import (
     admin_pending_submissions, admin_review_submission,
     admin_my_submissions,
     admin_api_key_request_code, admin_api_key_verify_code,
+    admin_gift_images, admin_gift_image_delete, admin_gift_images_reorder,
+    admin_webdev_media_upload, admin_webdev_media_delete,
 )
 
 
@@ -207,4 +209,13 @@ urlpatterns = [
     path('admin/submissions/', admin_pending_submissions, name='admin_pending_submissions'),
     path('admin/submissions/<int:submission_id>/', admin_review_submission, name='admin_review_submission'),
     path('admin/my-submissions/', admin_my_submissions, name='admin_my_submissions'),
+
+    # Gift images (multi-image upload)
+    path('admin/gifts/<int:gift_id>/images/', admin_gift_images, name='admin_gift_images'),
+    path('admin/gifts/<int:gift_id>/images/<int:image_id>/', admin_gift_image_delete, name='admin_gift_image_delete'),
+    path('admin/gifts/<int:gift_id>/images/reorder/', admin_gift_images_reorder, name='admin_gift_images_reorder'),
+
+    # WebDev media (video/image upload)
+    path('admin/webdev/<int:item_id>/media/', admin_webdev_media_upload, name='admin_webdev_media_upload'),
+    path('admin/webdev/<int:item_id>/media/<int:media_id>/', admin_webdev_media_delete, name='admin_webdev_media_delete'),
 ]

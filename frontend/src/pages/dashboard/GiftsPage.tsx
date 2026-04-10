@@ -3,14 +3,46 @@ import { Link } from "react-router-dom";
 import {
   Search, Gift, ChevronRight, Home, Star, ShoppingCart,
   Clock, CheckCircle2, XCircle, Truck, Info, Package,
-  ExternalLink, Copy, Check, Loader2,
+  ExternalLink, Copy, Check, Loader2, ChevronLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { fetchOrders, fetchGifts, type Order, type GiftItem } from "@/lib/api";
+import { fetchOrders, fetchGifts, fetchPublicSettings, type Order, type GiftItem, type GiftImage } from "@/lib/api";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getGiftCart } from "@/lib/giftCart";
 import { toast } from "sonner";
+
+/** Minimal image carousel for gift cards */
+const ImageCarousel = ({ images, alt, className = "" }: { images: GiftImage[]; alt: string; className?: string }) => {
+  const [idx, setIdx] = useState(0);
+  if (images.length === 0) return null;
+  return (
+    <div className={`relative w-full h-full ${className}`}>
+      <img src={images[idx].url} alt={alt} className="w-full h-full object-cover" />
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i - 1 + images.length) % images.length); }}
+            className="absolute left-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIdx(i => (i + 1) % images.length); }}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
+            {images.map((_, i) => (
+              <span key={i} className={`h-1.5 rounded-full transition-all ${i === idx ? "w-4 bg-white" : "w-1.5 bg-white/50"}`} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const statusConfig: Record<string, { label: string; icon: typeof CheckCircle2; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-amber-500/10 text-amber-500" },
@@ -31,6 +63,13 @@ const GiftsPage = () => {
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const cart = getGiftCart();
+
+  // Check feature toggle
+  const { data: publicSettings } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: fetchPublicSettings,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch gifts from API
   const { data: gifts = [], isLoading: giftsLoading } = useQuery({
@@ -61,6 +100,29 @@ const GiftsPage = () => {
   const cartGifts = cart
     .map((c) => ({ cartItem: c, gift: giftMap.get(c.giftId) }))
     .filter((c) => c.gift);
+
+  if (publicSettings && !publicSettings.gifts_enabled) {
+    return (
+      <div className="space-y-6 max-w-[1400px]">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to="/dashboard" className="hover:text-foreground transition-colors flex items-center gap-1">
+            <Home className="h-3.5 w-3.5" /> Home
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground font-medium">Send Gift Abroad</span>
+        </div>
+        <div className="glass-card p-16 text-center">
+          <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <Gift className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Coming Soon</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Our gift delivery service is being prepared. You'll be able to send gifts to your loved ones abroad very soon!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-[1400px]">
@@ -208,13 +270,15 @@ const GiftsPage = () => {
               {filtered.map((gift) => (
                 <div key={gift.id} className="glass-card group hover:border-primary/30 hover:shadow-lg transition-all duration-300 overflow-hidden">
                   <div className="h-40 bg-primary/80 flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                    {gift.image_url ? (
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-[1] pointer-events-none" />
+                    {gift.images?.length > 0 ? (
+                      <ImageCarousel images={gift.images} alt={gift.name} />
+                    ) : gift.image_url ? (
                       <img src={gift.image_url} alt={gift.name} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-5xl group-hover:scale-110 transition-transform duration-300">{gift.emoji || "🎁"}</span>
                     )}
-                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/30 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-full z-[2]">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                       {parseFloat(gift.rating).toFixed(1)}
                     </div>
@@ -272,7 +336,9 @@ const GiftsPage = () => {
                 <div key={cartItem.giftId} className="glass-card overflow-hidden">
                   <div className="flex items-center gap-4 p-5">
                     <div className="h-16 w-16 rounded-xl bg-primary/80 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {g.image_url ? (
+                      {g.images?.length > 0 ? (
+                        <img src={g.images[0].url} alt={g.name} className="w-full h-full object-cover" />
+                      ) : g.image_url ? (
                         <img src={g.image_url} alt={g.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-2xl">{g.emoji || "🎁"}</span>

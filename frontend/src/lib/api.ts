@@ -35,6 +35,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+async function uploadRequest<T>(path: string, formData: FormData, method = 'POST'): Promise<T> {
+  const csrfToken = await getCsrfToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    credentials: 'include',
+    headers: { 'X-CSRFToken': csrfToken },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.detail || 'Something went wrong.');
+  }
+  if (res.status === 204) return {} as T;
+  return res.json();
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -434,6 +450,7 @@ export interface AdminGift {
   emoji: string;
   color: string;
   image_url: string;
+  images: GiftImage[];
   delivery_days: number;
   notes: string;
   rating: string;
@@ -533,6 +550,24 @@ export function updateAdminGift(id: number, data: Record<string, unknown>) {
 
 export function deleteAdminGift(id: number) {
   return request<{ detail: string }>(`/admin/gifts/${id}/`, { method: 'DELETE' });
+}
+
+// Gift image management
+export function uploadGiftImages(giftId: number, files: File[]) {
+  const fd = new FormData();
+  files.forEach(f => fd.append('images', f));
+  return uploadRequest<{ detail: string; images: GiftImage[] }>(`/admin/gifts/${giftId}/images/`, fd);
+}
+
+export function deleteGiftImage(giftId: number, imageId: number) {
+  return request<{ detail: string }>(`/admin/gifts/${giftId}/images/${imageId}/`, { method: 'DELETE' });
+}
+
+export function reorderGiftImages(giftId: number, order: number[]) {
+  return request<{ detail: string }>(`/admin/gifts/${giftId}/images/reorder/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ order }),
+  });
 }
 
 export function fetchAdminBoostingServices() {
@@ -672,6 +707,7 @@ export interface AdminWebDev {
   video_url: string;
   website_url: string;
   image_url: string;
+  media: WebDevMedia[];
   price: string;
   category: string;
   is_active: boolean;
@@ -700,6 +736,17 @@ export function deleteAdminWebDev(id: number) {
   return request<{ detail: string }>(`/admin/webdev/${id}/`, { method: 'DELETE' });
 }
 
+// WebDev media management
+export function uploadWebDevMedia(itemId: number, files: File[]) {
+  const fd = new FormData();
+  files.forEach(f => fd.append('files', f));
+  return uploadRequest<{ detail: string; media: WebDevMedia[] }>(`/admin/webdev/${itemId}/media/`, fd);
+}
+
+export function deleteWebDevMedia(itemId: number, mediaId: number) {
+  return request<{ detail: string }>(`/admin/webdev/${itemId}/media/${mediaId}/`, { method: 'DELETE' });
+}
+
 // --- Platform Settings ---
 
 export interface CryptoMethod {
@@ -720,6 +767,8 @@ export interface PlatformSettings {
   usd_to_ngn_rate: string;
   crypto_usd_rate: string;
   crypto_methods: CryptoMethod[];
+  gifts_enabled: boolean;
+  webdev_enabled: boolean;
   api_keys: {
     korapay_secret: ApiKeyInfo;
     korapay_public: ApiKeyInfo;
@@ -765,6 +814,8 @@ export function fetchCryptoMethods() {
 
 export interface PublicSettings {
   whatsapp: string;
+  gifts_enabled: boolean;
+  webdev_enabled: boolean;
 }
 
 export function fetchPublicSettings() {
@@ -772,6 +823,12 @@ export function fetchPublicSettings() {
 }
 
 // --- Gifts (user-facing) ---
+
+export interface GiftImage {
+  id: number;
+  url: string;
+  position: number;
+}
 
 export interface GiftItem {
   id: number;
@@ -783,6 +840,7 @@ export interface GiftItem {
   emoji: string;
   color: string;
   image_url: string;
+  images: GiftImage[];
   delivery_days: number;
   notes: string;
   rating: string;
@@ -798,6 +856,13 @@ export function fetchGift(id: number) {
 
 // --- Web Development Portfolio (user-facing) ---
 
+export interface WebDevMedia {
+  id: number;
+  url: string;
+  media_type: 'image' | 'video';
+  position: number;
+}
+
 export interface WebDevItem {
   id: number;
   title: string;
@@ -805,6 +870,7 @@ export interface WebDevItem {
   video_url: string;
   website_url: string;
   image_url: string;
+  media: WebDevMedia[];
   price: string;
   category: string;
 }

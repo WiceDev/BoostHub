@@ -39,6 +39,20 @@ class Gift(models.Model):
         return f"{self.name} - {self.get_category_display()}"
 
 
+class GiftImage(models.Model):
+    """Multiple images per gift item (front/back, different angles, sizes)."""
+    gift = models.ForeignKey(Gift, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='gifts/')
+    position = models.PositiveIntegerField(default=0, help_text='Display order (lower = first)')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position', 'id']
+
+    def __str__(self):
+        return f"Image {self.position} for {self.gift.name}"
+
+
 class BoostingService(models.Model):
     name = models.CharField(max_length=500)
     platform = models.CharField(max_length=100, blank=True)
@@ -117,6 +131,25 @@ class WebDevPortfolio(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class WebDevMedia(models.Model):
+    """Videos and images for web development portfolio items."""
+    MEDIA_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+    ]
+    portfolio = models.ForeignKey(WebDevPortfolio, on_delete=models.CASCADE, related_name='media_files')
+    file = models.FileField(upload_to='webdev/')
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPE_CHOICES)
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position', 'id']
+
+    def __str__(self):
+        return f"{self.media_type} {self.position} for {self.portfolio.title}"
 
 
 class SmmPanel(models.Model):
