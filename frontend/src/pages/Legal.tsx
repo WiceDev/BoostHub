@@ -1,9 +1,17 @@
 import { useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Zap, ArrowLeft } from "lucide-react";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const Legal = () => {
   const { hash } = useLocation();
+
+  usePageMeta({
+    title: "Legal — Privacy Policy, Terms of Service & Refund Policy",
+    description:
+      "Read PriveBoost's Privacy Policy, Terms of Service, and Refund Policy. Learn how we protect your data, our service terms, and our automatic refund guarantee.",
+    canonical: "https://www.priveboost.com/legal",
+  });
 
   useEffect(() => {
     if (hash) {

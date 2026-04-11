@@ -7,8 +7,14 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { register, ApiError } from "@/lib/api";
 import { toast } from "sonner";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const Signup = () => {
+  usePageMeta({
+    title: "Sign Up — Create Your Free Account",
+    description: "Create a free PriveBoost account to buy social media followers, likes, verification numbers, and digital services. Instant delivery, NGN payments.",
+    canonical: "https://www.priveboost.com/signup",
+  });
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");

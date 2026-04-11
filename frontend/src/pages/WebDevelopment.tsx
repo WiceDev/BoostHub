@@ -2,6 +2,7 @@ import { MessageSquare, ExternalLink, Play, Globe, Code } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Button } from "@/components/ui/button";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const WHATSAPP_LINK = "https://wa.me/2348000000000";
 
@@ -79,6 +80,13 @@ const projects = [
 ];
 
 const WebDevelopment = () => {
+  usePageMeta({
+    title: "Web Development — Custom Websites for Your Business",
+    description:
+      "Get professional, modern websites built by PriveBoost developers. Ecommerce stores, investment platforms, food delivery apps, banking UIs, crypto exchanges, and more. View our portfolio.",
+    canonical: "https://www.priveboost.com/web-development",
+  });
+
   const handleInquire = (projectTitle: string) => {
     const message = encodeURIComponent(
       `Hi, I'm interested in a website similar to "${projectTitle}". I'd like to discuss the details.`

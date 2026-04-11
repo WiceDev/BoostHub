@@ -1,10 +1,15 @@
 User-agent: *
 Allow: /
+Allow: /services
+Allow: /web-development
 Allow: /login
 Allow: /signup
-Allow: /web-development
+Allow: /legal
 Disallow: /api/
 Disallow: /admin/
 Disallow: /dashboard/
+Disallow: /verify-email
+Disallow: /reset-password
+Disallow: /forgot-password
 
-Sitemap: https://priveboost.com/sitemap.xml
+Sitemap: https://www.priveboost.com/sitemap.xml

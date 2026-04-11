@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { login, verify2faLogin, ApiError, type User } from "@/lib/api";
 import { toast } from "sonner";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 
 const Login = () => {
+  usePageMeta({
+    title: "Login",
+    description: "Log in to your PriveBoost account to access social media boosting, verification numbers, and digital services.",
+    canonical: "https://www.priveboost.com/login",
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

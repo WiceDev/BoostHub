@@ -3,6 +3,7 @@ import { TrendingUp, Phone, Users, Code, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
+import { usePageMeta } from "@/hooks/use-page-meta";
 
 const services = [
   {
@@ -40,6 +41,13 @@ const services = [
 ];
 
 const Services = () => {
+  usePageMeta({
+    title: "Services — Social Media Boosting, Verification Numbers & More",
+    description:
+      "Explore PriveBoost services: social media boosting for Instagram, TikTok, Twitter & YouTube, OTP verification numbers, verified social media accounts, and professional web development.",
+    canonical: "https://www.priveboost.com/services",
+  });
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
