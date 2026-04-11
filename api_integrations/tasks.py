@@ -179,9 +179,11 @@ def sync_boosting_services():
         return f'Error: {e}'
 
     created = updated = unchanged = 0
+    seen_external_ids = set()
 
     for svc in raw_services:
         external_id = int(svc['service'])
+        seen_external_ids.add(external_id)
         cost_ngn = Decimal(str(svc['rate']))
         name = svc.get('name', '')
         service_type = svc.get('type', '')
@@ -238,11 +240,21 @@ def sync_boosting_services():
             )
             created += 1
 
+    # Deactivate services that the API no longer returns (discontinued by provider)
+    stale = BoostingServiceSnapshot.objects.filter(
+        is_active=True,
+    ).exclude(
+        external_id__in=seen_external_ids,
+    )
+    stale_count = stale.update(is_active=False)
+    if stale_count:
+        logger.info(f'Boosting sync: deactivated {stale_count} stale services no longer in RSS API.')
+
     # Invalidate the cached service list so users get fresh data next request
     from django.core.cache import cache
     cache.delete('rss_services_db_v1')
 
-    msg = f'Boosting sync: {created} new, {updated} updated, {unchanged} unchanged.'
+    msg = f'Boosting sync: {created} new, {updated} updated, {unchanged} unchanged, {stale_count} stale deactivated.'
     logger.info(msg)
     return msg
 

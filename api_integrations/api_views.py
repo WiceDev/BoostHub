@@ -174,6 +174,16 @@ def api_boosting_order(request):
         order.mark_failed(notes=f'Provider error: {error_str}')
         if is_provider_insufficient_funds(error_str):
             notify_admins_insufficient_funds('RSS', error_str, order.id)
+
+        # Auto-deactivate the service if the provider says the ID is invalid
+        if 'incorrect service' in error_str.lower():
+            from .models import BoostingServiceSnapshot
+            BoostingServiceSnapshot.objects.filter(
+                external_id=service['id'], is_active=True,
+            ).update(is_active=False)
+            cache.delete(CACHE_KEY)
+            logger.warning(f'Auto-deactivated stale service {service["id"]} ({service["name"]})')
+
         return Response(
             {'detail': SERVICE_UNAVAILABLE_MSG},
             status=503,
