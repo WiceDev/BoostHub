@@ -2,6 +2,7 @@ import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import ServicesSection from "@/components/landing/ServicesSection";
 import ContactSection from "@/components/landing/ContactSection";
+import FAQSection from "@/components/landing/FAQSection";
 import Footer from "@/components/landing/Footer";
 import { usePageMeta } from "@/hooks/use-page-meta";
 
@@ -19,6 +20,7 @@ const Index = () => {
       <HeroSection />
       <ServicesSection />
       <ContactSection />
+      <FAQSection />
       <Footer />
     </div>
   );

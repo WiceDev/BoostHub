@@ -8,9 +8,10 @@ const navLinks = [
   { label: "About", to: "/", hash: "#about" },
   { label: "Services", to: "/", hash: "#services" },
   { label: "Contact", to: "/", hash: "#contact" },
+  { label: "FAQ", to: "/", hash: "#faq" },
 ];
 
-const observedIds = ["home", "about", "services", "contact"];
+const observedIds = ["home", "about", "services", "contact", "faq"];
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
