@@ -178,8 +178,12 @@ def api_boosting_order(request):
         # Auto-deactivate the service if the provider says the ID is invalid
         if 'incorrect service' in error_str.lower():
             from .models import BoostingServiceSnapshot
+            from services.models import BoostingService
             BoostingServiceSnapshot.objects.filter(
                 external_id=service['id'], is_active=True,
+            ).update(is_active=False)
+            BoostingService.objects.filter(
+                catalog_snapshot_id=service['id'],
             ).update(is_active=False)
             cache.delete(CACHE_KEY)
             logger.warning(f'Auto-deactivated stale service {service["id"]} ({service["name"]})')

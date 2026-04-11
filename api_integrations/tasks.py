@@ -246,9 +246,15 @@ def sync_boosting_services():
     ).exclude(
         external_id__in=seen_external_ids,
     )
+    stale_ids = list(stale.values_list('external_id', flat=True))
     stale_count = stale.update(is_active=False)
     if stale_count:
-        logger.info(f'Boosting sync: deactivated {stale_count} stale services no longer in RSS API.')
+        # Also deactivate the mirrored BoostingService records
+        from services.models import BoostingService
+        BoostingService.objects.filter(
+            catalog_snapshot_id__in=stale_ids,
+        ).update(is_active=False)
+        logger.info(f'Boosting sync: deactivated {stale_count} stale services no longer in RSS API: {stale_ids}')
 
     # Invalidate the cached service list so users get fresh data next request
     from django.core.cache import cache
